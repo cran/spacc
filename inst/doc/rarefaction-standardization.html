@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Gilles Colling" />
+
+<meta name="date" content="2026-06-14" />
+
+<title>Rarefaction and Standardization</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Rarefaction and Standardization</h1>
+<h4 class="author">Gilles Colling</h4>
+<h4 class="date">2026-06-14</h4>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Species richness counted from raw data confounds two things: how
+diverse a community is and how hard it was sampled. A plot visited for
+an afternoon yields fewer species than the same plot visited for a week,
+even though the underlying community has not changed. The same effect
+appears across sites. A site with 500 recorded individuals will, on
+average, show more species than a neighbour with 50, because more
+individuals expose more of the rare tail of the community. Any
+comparison of raw counts therefore partly measures effort rather than
+ecology.</p>
+<p>The bias is large. Richness rises steeply with the first few dozen
+individuals and only flattens once the common species are saturated and
+new records start repeating species already seen. Two sites at different
+points on that rising curve are not comparable. Reporting that site A
+has 18 species and site B has 11 says little until both numbers refer to
+the same amount of sampling.</p>
+<p>Standardization removes the effort axis so that the diversity axis
+can be read on its own. Two families of methods do this. Rarefaction
+fixes a common sample size and asks how many species would be expected
+at that size. Coverage-based methods fix a common completeness, the
+fraction of total community abundance that the observed species account
+for, and compare richness at that shared completeness. This vignette
+develops both, shows the estimators <strong>spacc</strong> provides for
+each, and ends with concrete rules for choosing between them. The
+running theme is that the standardization target, equal size or equal
+coverage, can change which site looks more diverse.</p>
+<p>The distinction matters because size and coverage are not
+interchangeable. A fixed number of individuals corresponds to very
+different completeness depending on how even the community is. In an
+even community a few hundred individuals already capture almost every
+species, so coverage is high. In a community with a handful of dominants
+and a long tail of rare species, the same few hundred individuals leave
+much of the tail undetected, so coverage stays low. Comparing two such
+communities at equal sample size therefore compares them at unequal
+completeness, which reintroduces a version of the bias that rarefaction
+was meant to remove. Coverage-based standardization closes that gap by
+making completeness itself the common currency.</p>
+<p>The cost of coverage standardization is that it needs counts of
+individuals. The singleton and doubleton frequencies that drive the
+coverage estimate exist only in abundance data, not in presence/absence
+records. When the data are binary, or when effort varies through the
+number of plots rather than the number of individuals within a plot, the
+sample-based rarefaction family is the right tool instead.
+<strong>spacc</strong> carries all three families, and the sections
+below show how to move between them on a single simulated dataset where
+the true community is known.</p>
+</div>
+<div id="methods-and-theory" class="section level2">
+<h2>Methods and theory</h2>
+<div id="individual-based-rarefaction" class="section level3">
+<h3>Individual-based rarefaction</h3>
+<p>Individual-based rarefaction asks a counterfactual question. Given a
+pooled sample of <span class="math inline">\(N\)</span> individuals
+containing <span class="math inline">\(S_{obs}\)</span> species, how
+many species would be expected in a random subsample of <span class="math inline">\(n \le N\)</span> individuals drawn without
+replacement. Hurlbert (1971) gives the exact expectation. Let <span class="math inline">\(N_i\)</span> be the total abundance of species
+<span class="math inline">\(i\)</span>, so that <span class="math inline">\(N = \sum_i N_i\)</span>. The probability that
+species <span class="math inline">\(i\)</span> appears at least once in
+a subsample of <span class="math inline">\(n\)</span> is one minus the
+probability of drawing <span class="math inline">\(n\)</span>
+individuals that all avoid species <span class="math inline">\(i\)</span>:</p>
+<p><span class="math display">\[
+P(\text{species } i \in \text{subsample}) = 1 - \frac{\binom{N -
+N_i}{n}}{\binom{N}{n}}.
+\]</span></p>
+<p>Summing detection probabilities over all observed species gives the
+expected rarefied richness, since the expectation of a sum of indicators
+is the sum of their probabilities:</p>
+<p><span class="math display">\[
+E[S_n] = \sum_{i=1}^{S_{obs}} \left[ 1 - \frac{\binom{N -
+N_i}{n}}{\binom{N}{n}} \right].
+\]</span></p>
+<p>Here <span class="math inline">\(E[S_n]\)</span> is expected richness
+at subsample size <span class="math inline">\(n\)</span>, <span class="math inline">\(N\)</span> is the total number of individuals
+pooled across the sites being compared, <span class="math inline">\(N_i\)</span> is the abundance of species <span class="math inline">\(i\)</span>, and <span class="math inline">\(S_{obs}\)</span> is the number of species observed
+in the full pooled sample. The curve <span class="math inline">\(E[S_n]\)</span> starts at 1 when <span class="math inline">\(n = 1\)</span>, rises monotonically, and reaches
+<span class="math inline">\(S_{obs}\)</span> exactly when <span class="math inline">\(n = N\)</span>. The formula is computed on a log
+scale in <strong>spacc</strong> to avoid overflow in the binomial
+coefficients.</p>
+<p>The expectation is exact, not a simulation average. Drawing many
+random subsamples of size <span class="math inline">\(n\)</span> and
+averaging their richness would converge to <span class="math inline">\(E[S_n]\)</span>, but the Hurlbert formula gives
+that limit in closed form, which is both faster and free of Monte Carlo
+noise. The shape of the curve carries information of its own. A curve
+that has flattened by <span class="math inline">\(n = N/2\)</span>
+indicates a community whose common species are saturated, so doubling
+the remaining effort would add few species. A curve still rising steeply
+at <span class="math inline">\(n = N\)</span> indicates an undersampled
+community where the species total is an underestimate.
+<strong>spacc</strong> attaches a bootstrap interval to the curve by
+resampling individuals with replacement and recomputing the expectation,
+which captures sampling variation in the underlying frequencies.</p>
+<p>The same logic extends to Hill numbers of order <span class="math inline">\(q\)</span>, which weight species by abundance.
+Order <span class="math inline">\(q = 0\)</span> is richness, where all
+species count equally and the rare tail dominates. Order <span class="math inline">\(q = 1\)</span> is the exponential of Shannon
+entropy, which weights species by their frequency. Order <span class="math inline">\(q = 2\)</span> is the inverse Simpson
+concentration, dominated by the common species. The Hill number of order
+<span class="math inline">\(q\)</span> of a community with relative
+abundances <span class="math inline">\(p_i\)</span> is</p>
+<p><span class="math display">\[
+{}^{q}D = \left( \sum_{i=1}^{S} p_i^{q} \right)^{1/(1-q)}, \qquad q \ne
+1,
+\]</span></p>
+<p>with the <span class="math inline">\(q = 1\)</span> case taken as the
+limit <span class="math inline">\({}^{1}D = \exp(-\sum_i p_i \log
+p_i)\)</span>. Each <span class="math inline">\({}^{q}D\)</span> is an
+effective number of species, the count of equally abundant species that
+would give the same diversity value. Higher <span class="math inline">\(q\)</span> down-weights rare species, so the
+rarefaction curve for <span class="math inline">\(q = 2\)</span>
+saturates faster and is far less sensitive to subsample size than the
+curve for <span class="math inline">\(q = 0\)</span>.</p>
+<p>The choice of <span class="math inline">\(q\)</span> encodes a
+research question rather than a technical preference. Richness (<span class="math inline">\(q = 0\)</span>) treats a species seen once and a
+species seen a thousand times as equal contributions, which makes it the
+most sensitive to sampling effort and to the rare tail. Shannon
+diversity (<span class="math inline">\(q = 1\)</span>) weights each
+species by its abundance, giving a balanced summary that is less
+affected by the few rarest records. Inverse Simpson (<span class="math inline">\(q = 2\)</span>) is governed almost entirely by the
+common species and barely moves as effort grows, which makes it a stable
+comparison when the rare tail is suspected to be noise. Scanning <span class="math inline">\(q\)</span> from 0 upward across the same data
+traces a diversity profile, and the steepness of that profile is itself
+a measure of how uneven the community is.</p>
+</div>
+<div id="sample-coverage" class="section level3">
+<h3>Sample coverage</h3>
+<p>Sample size is a poor common currency when communities differ in
+evenness. A fixed number of individuals can represent a near-complete
+census of an even community yet barely scratch a community with a long
+rare tail. Sample coverage measures completeness directly. Coverage
+<span class="math inline">\(C\)</span> is the fraction of the total
+community abundance belonging to the species already observed, so <span class="math inline">\(1 - C\)</span> is the probability that the next
+individual sampled belongs to a species not yet recorded. Chao and Jost
+(2012) estimate it from the frequency counts of the sample:</p>
+<p><span class="math display">\[
+C = 1 - \frac{f_1}{N} \cdot \frac{(N-1) f_1}{(N-1) f_1 + 2 f_2}.
+\]</span></p>
+<p>Here <span class="math inline">\(f_1\)</span> is the number of
+singletons, species represented by exactly one individual in the pooled
+sample, <span class="math inline">\(f_2\)</span> is the number of
+doubletons, species represented by exactly two individuals, and <span class="math inline">\(N\)</span> is the total number of individuals. The
+estimator rests on the Good-Turing insight that singletons carry the
+signal about undetected species: many singletons relative to doubletons
+means the rare tail is poorly sampled and coverage is low. When <span class="math inline">\(f_1 = 0\)</span> every observed species has been
+seen more than once, the correction vanishes, and <span class="math inline">\(C = 1\)</span>. Coverage-based rarefaction
+interpolates richness or any <span class="math inline">\({}^{q}D\)</span> to a target coverage rather than
+a target sample size, so two communities are compared at equal
+proportional representation.</p>
+<p>The deficit <span class="math inline">\(1 - C\)</span> has a direct
+reading as a probability. It estimates the chance that the next
+individual sampled belongs to a species not yet on the list, so it
+answers the practical question of how much new information one more
+sample would bring. A deficit of 0.05 means coverage of 0.95, and the
+next individual has roughly a one-in-twenty chance of being a new
+species. This interpretation is what makes coverage a fair common
+currency: two samples at the same deficit have the same residual
+probability of discovery, regardless of how many individuals each took
+to reach that point. For plot-based spatial data, where the sampling
+unit is a site rather than an individual, the Chiu (2023) variant uses
+incidence frequencies, the counts of species found in exactly one or two
+sites, and is the more appropriate estimator.
+<code>spaccCoverage()</code> exposes both through its
+<code>coverage</code> argument.</p>
+</div>
+</div>
+<div id="simulating-uneven-effort" class="section level2">
+<h2>Simulating uneven effort</h2>
+<p>The simulation idiom from the package, a site-by-species matrix of
+Poisson abundances, makes the effort bias concrete because the ground
+truth is known. Here every site is drawn from the same 20-species pool,
+so the true per-site richness ceiling is identical across all sites.
+What differs is the Poisson rate, which sets per-site total abundance.
+Low-rate sites are sampled shallowly and will miss species purely
+because few individuals were drawn.</p>
+<p>Building the matrix this way separates the two things real data
+conflate. The biological signal, the species pool, is held fixed at 20
+species for every site. The sampling signal, the per-site rate <span class="math inline">\(\lambda\)</span>, is varied deliberately across
+three tiers. Any difference in observed richness between tiers is
+therefore attributable to effort alone, because the generating community
+is identical. This is the controlled setting in which a standardization
+method can be checked: a method that works should erase the between-tier
+difference, recovering the shared 20-species ceiling, while a method
+that fails will leave the effort gradient intact. Real surveys never
+come with this guarantee, which is why a simulation with known truth is
+the right place to build intuition before applying the same tools to
+field data.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(spacc)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>n_sites <span class="ot">&lt;-</span> <span class="dv">60</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">runif</span>(n_sites), <span class="at">y =</span> <span class="fu">runif</span>(n_sites))</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># Variable total abundances across sites (realistic uneven sampling)</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>lambdas <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>), <span class="at">each =</span> <span class="dv">20</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>species <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, <span class="at">nrow =</span> n_sites, <span class="at">ncol =</span> <span class="dv">20</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(n_sites)) {</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  species[i, ] <span class="ot">&lt;-</span> <span class="fu">rpois</span>(<span class="dv">20</span>, <span class="at">lambda =</span> lambdas[i])</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>}</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="fu">colnames</span>(species) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;sp&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>)</span></code></pre></div>
+<p>The three effort tiers, Poisson rates 1, 3, and 5, span a fivefold
+range in expected individuals per site. The induced bias is visible
+directly in the per-site counts: low-effort sites record fewer
+individuals and fewer species, even though all sites share the same
+underlying community.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>tier <span class="ot">&lt;-</span> <span class="fu">factor</span>(lambdas)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>indiv <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(species)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>rich <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(species <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">aggregate</span>(<span class="fu">cbind</span>(<span class="at">individuals =</span> indiv, <span class="at">richness =</span> rich), <span class="fu">list</span>(<span class="at">tier =</span> tier), mean)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;   tier individuals richness</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; 1    1       18.45    11.80</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; 2    3       59.65    18.95</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; 3    5       98.05    19.90</span></span></code></pre></div>
+<p>Mean observed richness climbs from the low-effort tier to the
+high-effort tier despite an identical 20-species ceiling. That gap is
+the artefact standardization is built to remove. A naive ranking of
+these sites by raw richness would simply recover the sampling-effort
+gradient.</p>
+<p>The mean individuals per site track the Poisson rates closely, around
+one, three, and five times 20 species, since each cell of the matrix is
+an independent Poisson draw. Mean richness rises with them, but more
+slowly, because the high tiers are already close to the 20-species
+ceiling and have little room left to climb. The low tier sits far below
+the ceiling, missing several species per site purely because few
+individuals were drawn. This is the saturating-curve effect seen at the
+level of a single site: the first individuals reveal common species
+quickly, and each additional individual is progressively more likely to
+repeat a species already recorded.</p>
+</div>
+<div id="individual-based-rarefaction-1" class="section level2">
+<h2>Individual-based rarefaction</h2>
+<p>The <code>rarefy()</code> function takes the abundance matrix, pools
+it across sites, and returns the Hurlbert expectation <span class="math inline">\(E[S_n]\)</span> over a grid of subsample sizes.
+The returned <code>spacc_rare</code> object carries the curve, a
+bootstrap standard deviation, and 95 percent bounds.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Rarefy to the pooled abundance grid (q = 0, richness)</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>rare <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(species)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">print</span>(rare)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; Individual-based rarefaction</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; ---------------------------- </span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Total individuals: 3523</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Observed species: 20</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; Bootstrap replicates: 100</span></span></code></pre></div>
+<p>The numeric curve is recovered with <code>as.data.frame()</code>,
+which exposes the sample sizes, the expected diversity, and the
+bootstrap interval. The expectation flattens well before the full sample
+size, the signature of a saturating community.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>rare_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(rare)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">head</span>(rare_df, <span class="dv">4</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;     n expected           sd    lower    upper</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; 1   1  1.00000 2.294488e-15  1.00000  1.00000</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 2  37 17.00820 1.577237e-02 16.94641 17.00393</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; 3  72 19.50629 1.006188e-02 19.46492 19.50324</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; 4 108 19.92306 3.648140e-03 19.90731 19.92184</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="fu">tail</span>(rare_df, <span class="dv">2</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;        n expected sd lower upper</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; 99  3487       20  0    20    20</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; 100 3523       20  0    20    20</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">plot</span>(rare) <span class="sc">+</span> transparent</span></code></pre></div>
+<p><img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnID8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB4bWxuczp4bGluaz0naHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluaycgd2lkdGg9JzUwNC4wMHB0JyBoZWlnaHQ9JzM2MC4wMHB0JyB2aWV3Qm94PScwIDAgNTA0LjAwIDM2MC4wMCc+CjxnIGNsYXNzPSdzdmdsaXRlJz4KPGRlZnM+CiAgPHN0eWxlIHR5cGU9J3RleHQvY3NzJz48IVtDREFUQVsKICAgIC5zdmdsaXRlIGxpbmUsIC5zdmdsaXRlIHBvbHlsaW5lLCAuc3ZnbGl0ZSBwb2x5Z29uLCAuc3ZnbGl0ZSBwYXRoLCAuc3ZnbGl0ZSByZWN0LCAuc3ZnbGl0ZSBjaXJjbGUgewogICAgICBmaWxsOiBub25lOwogICAgICBzdHJva2U6ICMwMDAwMDA7CiAgICAgIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICAgICAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKICAgICAgc3Ryb2tlLW1pdGVybGltaXQ6IDEwLjAwOwogICAgfQogICAgLnN2Z2xpdGUgdGV4dCB7CiAgICAgIHdoaXRlLXNwYWNlOiBwcmU7CiAgICB9CiAgICAuc3ZnbGl0ZSBnLmdseXBoZ3JvdXAgcGF0aCB7CiAgICAgIGZpbGw6IGluaGVyaXQ7CiAgICAgIHN0cm9rZTogbm9uZTsKICAgIH0KICBdXT48L3N0eWxlPgo8L2RlZnM+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHN0eWxlPSdzdHJva2U6IG5vbmU7IGZpbGw6ICNGRkZGRkY7Jy8+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSc+CiAgICA8cmVjdCB4PScwLjAwJyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+CjxyZWN0IHg9JzAuMDAnIHk9JzAuMDAnIHdpZHRoPSc1MDQuMDAnIGhlaWdodD0nMzYwLjAwJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8L2c+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNell1TVRKOE5EazRMakF5ZkRReUxqTTRmRE15TlM0Mk5RPT0nPgogICAgPHJlY3QgeD0nMzYuMTInIHk9JzQyLjM4JyB3aWR0aD0nNDYxLjkwJyBoZWlnaHQ9JzI4My4yOCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE16WXVNVEo4TkRrNExqQXlmRFF5TGpNNGZETXlOUzQyTlE9PSknPgo8cmVjdCB4PSczNi4xMicgeT0nNDIuMzgnIHdpZHRoPSc0NjEuOTAnIGhlaWdodD0nMjgzLjI4JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8cG9seWdvbiBwb2ludHM9JzU3LjExLDMxMi43OCA2MS40MSw5NS44NiA2NS41OCw2MS45OSA2OS44Nyw1Ni4zMSA3NC4wNCw1NS40MyA3OC4zNCw1NS4yOCA4Mi41MSw1NS4yNiA4Ni44MCw1NS4yNSA5MS4wOSw1NS4yNSA5NS4yNyw1NS4yNSA5OS41Niw1NS4yNSAxMDMuNzMsNTUuMjUgMTA4LjAyLDU1LjI1IDExMi4yMCw1NS4yNSAxMTYuNDksNTUuMjUgMTIwLjc4LDU1LjI1IDEyNC45NSw1NS4yNSAxMjkuMjUsNTUuMjUgMTMzLjQyLDU1LjI1IDEzNy43MSw1NS4yNSAxNDIuMDAsNTUuMjUgMTQ2LjE4LDU1LjI1IDE1MC40Nyw1NS4yNSAxNTQuNjQsNTUuMjUgMTU4LjkzLDU1LjI1IDE2My4xMSw1NS4yNSAxNjcuNDAsNTUuMjUgMTcxLjY5LDU1LjI1IDE3NS44Niw1NS4yNSAxODAuMTYsNTUuMjUgMTg0LjMzLDU1LjI1IDE4OC42Miw1NS4yNSAxOTIuNzksNTUuMjUgMTk3LjA5LDU1LjI1IDIwMS4zOCw1NS4yNSAyMDUuNTUsNTUuMjUgMjA5Ljg0LDU1LjI1IDIxNC4wMiw1NS4yNSAyMTguMzEsNTUuMjUgMjIyLjQ4LDU1LjI1IDIyNi43Nyw1NS4yNSAyMzEuMDYsNTUuMjUgMjM1LjI0LDU1LjI1IDIzOS41Myw1NS4yNSAyNDMuNzAsNTUuMjUgMjQ3Ljk5LDU1LjI1IDI1Mi4xNyw1NS4yNSAyNTYuNDYsNTUuMjUgMjYwLjc1LDU1LjI1IDI2NC45Miw1NS4yNSAyNjkuMjIsNTUuMjUgMjczLjM5LDU1LjI1IDI3Ny42OCw1NS4yNSAyODEuOTcsNTUuMjUgMjg2LjE1LDU1LjI1IDI5MC40NCw1NS4yNSAyOTQuNjEsNTUuMjUgMjk4LjkwLDU1LjI1IDMwMy4wOCw1NS4yNSAzMDcuMzcsNTUuMjUgMzExLjY2LDU1LjI1IDMxNS44Myw1NS4yNSAzMjAuMTMsNTUuMjUgMzI0LjMwLDU1LjI1IDMyOC41OSw1NS4yNSAzMzIuNzYsNTUuMjUgMzM3LjA2LDU1LjI1IDM0MS4zNSw1NS4yNSAzNDUuNTIsNTUuMjUgMzQ5LjgxLDU1LjI1IDM1My45OSw1NS4yNSAzNTguMjgsNTUuMjUgMzYyLjQ1LDU1LjI1IDM2Ni43NCw1NS4yNSAzNzEuMDQsNTUuMjUgMzc1LjIxLDU1LjI1IDM3OS41MCw1NS4yNSAzODMuNjcsNTUuMjUgMzg3Ljk3LDU1LjI1IDM5Mi4xNCw1NS4yNSAzOTYuNDMsNTUuMjUgNDAwLjcyLDU1LjI1IDQwNC45MCw1NS4yNSA0MDkuMTksNTUuMjUgNDEzLjM2LDU1LjI1IDQxNy42NSw1NS4yNSA0MjEuOTQsNTUuMjUgNDI2LjEyLDU1LjI1IDQzMC40MSw1NS4yNSA0MzQuNTgsNTUuMjUgNDM4Ljg3LDU1LjI1IDQ0My4wNSw1NS4yNSA0NDcuMzQsNTUuMjUgNDUxLjYzLDU1LjI1IDQ1NS44MCw1NS4yNSA0NjAuMTAsNTUuMjUgNDY0LjI3LDU1LjI1IDQ2OC41Niw1NS4yNSA0NzIuNzMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzIuNzMsNTUuMjUgNDY4LjU2LDU1LjI1IDQ2NC4yNyw1NS4yNSA0NjAuMTAsNTUuMjUgNDU1LjgwLDU1LjI1IDQ1MS42Myw1NS4yNSA0NDcuMzQsNTUuMjUgNDQzLjA1LDU1LjI1IDQzOC44Nyw1NS4yNSA0MzQuNTgsNTUuMjUgNDMwLjQxLDU1LjI1IDQyNi4xMiw1NS4yNSA0MjEuOTQsNTUuMjUgNDE3LjY1LDU1LjI1IDQxMy4zNiw1NS4yNSA0MDkuMTksNTUuMjUgNDA0LjkwLDU1LjI1IDQwMC43Miw1NS4yNSAzOTYuNDMsNTUuMjUgMzkyLjE0LDU1LjI1IDM4Ny45Nyw1NS4yNSAzODMuNjcsNTUuMjUgMzc5LjUwLDU1LjI1IDM3NS4yMSw1NS4yNSAzNzEuMDQsNTUuMjUgMzY2Ljc0LDU1LjI1IDM2Mi40NSw1NS4yNSAzNTguMjgsNTUuMjUgMzUzLjk5LDU1LjI1IDM0OS44MSw1NS4yNSAzNDUuNTIsNTUuMjUgMzQxLjM1LDU1LjI1IDMzNy4wNiw1NS4yNSAzMzIuNzYsNTUuMjUgMzI4LjU5LDU1LjI1IDMyNC4zMCw1NS4yNSAzMjAuMTMsNTUuMjUgMzE1LjgzLDU1LjI1IDMxMS42Niw1NS4yNSAzMDcuMzcsNTUuMjUgMzAzLjA4LDU1LjI1IDI5OC45MCw1NS4yNSAyOTQuNjEsNTUuMjUgMjkwLjQ0LDU1LjI1IDI4Ni4xNSw1NS4yNSAyODEuOTcsNTUuMjUgMjc3LjY4LDU1LjI1IDI3My4zOSw1NS4yNSAyNjkuMjIsNTUuMjUgMjY0LjkyLDU1LjI1IDI2MC43NSw1NS4yNSAyNTYuNDYsNTUuMjUgMjUyLjE3LDU1LjI1IDI0Ny45OSw1NS4yNSAyNDMuNzAsNTUuMjUgMjM5LjUzLDU1LjI1IDIzNS4yNCw1NS4yNSAyMzEuMDYsNTUuMjUgMjI2Ljc3LDU1LjI1IDIyMi40OCw1NS4yNSAyMTguMzEsNTUuMjUgMjE0LjAyLDU1LjI1IDIwOS44NCw1NS4yNSAyMDUuNTUsNTUuMjUgMjAxLjM4LDU1LjI1IDE5Ny4wOSw1NS4yNSAxOTIuNzksNTUuMjUgMTg4LjYyLDU1LjI1IDE4NC4zMyw1NS4yNSAxODAuMTYsNTUuMjUgMTc1Ljg2LDU1LjI1IDE3MS42OSw1NS4yNSAxNjcuNDAsNTUuMjUgMTYzLjExLDU1LjI1IDE1OC45Myw1NS4yNSAxNTQuNjQsNTUuMjUgMTUwLjQ3LDU1LjI1IDE0Ni4xOCw1NS4yNSAxNDIuMDAsNTUuMjUgMTM3LjcxLDU1LjI1IDEzMy40Miw1NS4yNSAxMjkuMjUsNTUuMjUgMTI0Ljk1LDU1LjI1IDEyMC43OCw1NS4yNSAxMTYuNDksNTUuMjUgMTEyLjIwLDU1LjI1IDEwOC4wMiw1NS4yNSAxMDMuNzMsNTUuMjUgOTkuNTYsNTUuMjUgOTUuMjcsNTUuMjUgOTEuMDksNTUuMjUgODYuODAsNTUuMjUgODIuNTEsNTUuMjYgNzguMzQsNTUuMzAgNzQuMDQsNTUuNDkgNjkuODcsNTYuNTEgNjUuNTgsNjIuNTEgNjEuNDEsOTYuNjQgNTcuMTEsMzEyLjc4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC4wMDsgc3Ryb2tlOiBub25lOyBzdHJva2UtbGluZWNhcDogYnV0dDsgZmlsbDogIzRDQUY1MDsgZmlsbC1vcGFjaXR5OiAwLjMwOycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsMzEyLjc4IDYxLjQxLDk1Ljg2IDY1LjU4LDYxLjk5IDY5Ljg3LDU2LjMxIDc0LjA0LDU1LjQzIDc4LjM0LDU1LjI4IDgyLjUxLDU1LjI2IDg2LjgwLDU1LjI1IDkxLjA5LDU1LjI1IDk1LjI3LDU1LjI1IDk5LjU2LDU1LjI1IDEwMy43Myw1NS4yNSAxMDguMDIsNTUuMjUgMTEyLjIwLDU1LjI1IDExNi40OSw1NS4yNSAxMjAuNzgsNTUuMjUgMTI0Ljk1LDU1LjI1IDEyOS4yNSw1NS4yNSAxMzMuNDIsNTUuMjUgMTM3LjcxLDU1LjI1IDE0Mi4wMCw1NS4yNSAxNDYuMTgsNTUuMjUgMTUwLjQ3LDU1LjI1IDE1NC42NCw1NS4yNSAxNTguOTMsNTUuMjUgMTYzLjExLDU1LjI1IDE2Ny40MCw1NS4yNSAxNzEuNjksNTUuMjUgMTc1Ljg2LDU1LjI1IDE4MC4xNiw1NS4yNSAxODQuMzMsNTUuMjUgMTg4LjYyLDU1LjI1IDE5Mi43OSw1NS4yNSAxOTcuMDksNTUuMjUgMjAxLjM4LDU1LjI1IDIwNS41NSw1NS4yNSAyMDkuODQsNTUuMjUgMjE0LjAyLDU1LjI1IDIxOC4zMSw1NS4yNSAyMjIuNDgsNTUuMjUgMjI2Ljc3LDU1LjI1IDIzMS4wNiw1NS4yNSAyMzUuMjQsNTUuMjUgMjM5LjUzLDU1LjI1IDI0My43MCw1NS4yNSAyNDcuOTksNTUuMjUgMjUyLjE3LDU1LjI1IDI1Ni40Niw1NS4yNSAyNjAuNzUsNTUuMjUgMjY0LjkyLDU1LjI1IDI2OS4yMiw1NS4yNSAyNzMuMzksNTUuMjUgMjc3LjY4LDU1LjI1IDI4MS45Nyw1NS4yNSAyODYuMTUsNTUuMjUgMjkwLjQ0LDU1LjI1IDI5NC42MSw1NS4yNSAyOTguOTAsNTUuMjUgMzAzLjA4LDU1LjI1IDMwNy4zNyw1NS4yNSAzMTEuNjYsNTUuMjUgMzE1LjgzLDU1LjI1IDMyMC4xMyw1NS4yNSAzMjQuMzAsNTUuMjUgMzI4LjU5LDU1LjI1IDMzMi43Niw1NS4yNSAzMzcuMDYsNTUuMjUgMzQxLjM1LDU1LjI1IDM0NS41Miw1NS4yNSAzNDkuODEsNTUuMjUgMzUzLjk5LDU1LjI1IDM1OC4yOCw1NS4yNSAzNjIuNDUsNTUuMjUgMzY2Ljc0LDU1LjI1IDM3MS4wNCw1NS4yNSAzNzUuMjEsNTUuMjUgMzc5LjUwLDU1LjI1IDM4My42Nyw1NS4yNSAzODcuOTcsNTUuMjUgMzkyLjE0LDU1LjI1IDM5Ni40Myw1NS4yNSA0MDAuNzIsNTUuMjUgNDA0LjkwLDU1LjI1IDQwOS4xOSw1NS4yNSA0MTMuMzYsNTUuMjUgNDE3LjY1LDU1LjI1IDQyMS45NCw1NS4yNSA0MjYuMTIsNTUuMjUgNDMwLjQxLDU1LjI1IDQzNC41OCw1NS4yNSA0MzguODcsNTUuMjUgNDQzLjA1LDU1LjI1IDQ0Ny4zNCw1NS4yNSA0NTEuNjMsNTUuMjUgNDU1LjgwLDU1LjI1IDQ2MC4xMCw1NS4yNSA0NjQuMjcsNTUuMjUgNDY4LjU2LDU1LjI1IDQ3Mi43Myw1NS4yNSA0NzcuMDMsNTUuMjUgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNDc3LjAzLDU1LjI1IDQ3Mi43Myw1NS4yNSA0NjguNTYsNTUuMjUgNDY0LjI3LDU1LjI1IDQ2MC4xMCw1NS4yNSA0NTUuODAsNTUuMjUgNDUxLjYzLDU1LjI1IDQ0Ny4zNCw1NS4yNSA0NDMuMDUsNTUuMjUgNDM4Ljg3LDU1LjI1IDQzNC41OCw1NS4yNSA0MzAuNDEsNTUuMjUgNDI2LjEyLDU1LjI1IDQyMS45NCw1NS4yNSA0MTcuNjUsNTUuMjUgNDEzLjM2LDU1LjI1IDQwOS4xOSw1NS4yNSA0MDQuOTAsNTUuMjUgNDAwLjcyLDU1LjI1IDM5Ni40Myw1NS4yNSAzOTIuMTQsNTUuMjUgMzg3Ljk3LDU1LjI1IDM4My42Nyw1NS4yNSAzNzkuNTAsNTUuMjUgMzc1LjIxLDU1LjI1IDM3MS4wNCw1NS4yNSAzNjYuNzQsNTUuMjUgMzYyLjQ1LDU1LjI1IDM1OC4yOCw1NS4yNSAzNTMuOTksNTUuMjUgMzQ5LjgxLDU1LjI1IDM0NS41Miw1NS4yNSAzNDEuMzUsNTUuMjUgMzM3LjA2LDU1LjI1IDMzMi43Niw1NS4yNSAzMjguNTksNTUuMjUgMzI0LjMwLDU1LjI1IDMyMC4xMyw1NS4yNSAzMTUuODMsNTUuMjUgMzExLjY2LDU1LjI1IDMwNy4zNyw1NS4yNSAzMDMuMDgsNTUuMjUgMjk4LjkwLDU1LjI1IDI5NC42MSw1NS4yNSAyOTAuNDQsNTUuMjUgMjg2LjE1LDU1LjI1IDI4MS45Nyw1NS4yNSAyNzcuNjgsNTUuMjUgMjczLjM5LDU1LjI1IDI2OS4yMiw1NS4yNSAyNjQuOTIsNTUuMjUgMjYwLjc1LDU1LjI1IDI1Ni40Niw1NS4yNSAyNTIuMTcsNTUuMjUgMjQ3Ljk5LDU1LjI1IDI0My43MCw1NS4yNSAyMzkuNTMsNTUuMjUgMjM1LjI0LDU1LjI1IDIzMS4wNiw1NS4yNSAyMjYuNzcsNTUuMjUgMjIyLjQ4LDU1LjI1IDIxOC4zMSw1NS4yNSAyMTQuMDIsNTUuMjUgMjA5Ljg0LDU1LjI1IDIwNS41NSw1NS4yNSAyMDEuMzgsNTUuMjUgMTk3LjA5LDU1LjI1IDE5Mi43OSw1NS4yNSAxODguNjIsNTUuMjUgMTg0LjMzLDU1LjI1IDE4MC4xNiw1NS4yNSAxNzUuODYsNTUuMjUgMTcxLjY5LDU1LjI1IDE2Ny40MCw1NS4yNSAxNjMuMTEsNTUuMjUgMTU4LjkzLDU1LjI1IDE1NC42NCw1NS4yNSAxNTAuNDcsNTUuMjUgMTQ2LjE4LDU1LjI1IDE0Mi4wMCw1NS4yNSAxMzcuNzEsNTUuMjUgMTMzLjQyLDU1LjI1IDEyOS4yNSw1NS4yNSAxMjQuOTUsNTUuMjUgMTIwLjc4LDU1LjI1IDExNi40OSw1NS4yNSAxMTIuMjAsNTUuMjUgMTA4LjAyLDU1LjI1IDEwMy43Myw1NS4yNSA5OS41Niw1NS4yNSA5NS4yNyw1NS4yNSA5MS4wOSw1NS4yNSA4Ni44MCw1NS4yNSA4Mi41MSw1NS4yNiA3OC4zNCw1NS4zMCA3NC4wNCw1NS40OSA2OS44Nyw1Ni41MSA2NS41OCw2Mi41MSA2MS40MSw5Ni42NCA1Ny4xMSwzMTIuNzggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsMzEyLjc4IDYxLjQxLDk1LjgwIDY1LjU4LDYxLjk0IDY5Ljg3LDU2LjMwIDc0LjA0LDU1LjQyIDc4LjM0LDU1LjI4IDgyLjUxLDU1LjI2IDg2LjgwLDU1LjI1IDkxLjA5LDU1LjI1IDk1LjI3LDU1LjI1IDk5LjU2LDU1LjI1IDEwMy43Myw1NS4yNSAxMDguMDIsNTUuMjUgMTEyLjIwLDU1LjI1IDExNi40OSw1NS4yNSAxMjAuNzgsNTUuMjUgMTI0Ljk1LDU1LjI1IDEyOS4yNSw1NS4yNSAxMzMuNDIsNTUuMjUgMTM3LjcxLDU1LjI1IDE0Mi4wMCw1NS4yNSAxNDYuMTgsNTUuMjUgMTUwLjQ3LDU1LjI1IDE1NC42NCw1NS4yNSAxNTguOTMsNTUuMjUgMTYzLjExLDU1LjI1IDE2Ny40MCw1NS4yNSAxNzEuNjksNTUuMjUgMTc1Ljg2LDU1LjI1IDE4MC4xNiw1NS4yNSAxODQuMzMsNTUuMjUgMTg4LjYyLDU1LjI1IDE5Mi43OSw1NS4yNSAxOTcuMDksNTUuMjUgMjAxLjM4LDU1LjI1IDIwNS41NSw1NS4yNSAyMDkuODQsNTUuMjUgMjE0LjAyLDU1LjI1IDIxOC4zMSw1NS4yNSAyMjIuNDgsNTUuMjUgMjI2Ljc3LDU1LjI1IDIzMS4wNiw1NS4yNSAyMzUuMjQsNTUuMjUgMjM5LjUzLDU1LjI1IDI0My43MCw1NS4yNSAyNDcuOTksNTUuMjUgMjUyLjE3LDU1LjI1IDI1Ni40Niw1NS4yNSAyNjAuNzUsNTUuMjUgMjY0LjkyLDU1LjI1IDI2OS4yMiw1NS4yNSAyNzMuMzksNTUuMjUgMjc3LjY4LDU1LjI1IDI4MS45Nyw1NS4yNSAyODYuMTUsNTUuMjUgMjkwLjQ0LDU1LjI1IDI5NC42MSw1NS4yNSAyOTguOTAsNTUuMjUgMzAzLjA4LDU1LjI1IDMwNy4zNyw1NS4yNSAzMTEuNjYsNTUuMjUgMzE1LjgzLDU1LjI1IDMyMC4xMyw1NS4yNSAzMjQuMzAsNTUuMjUgMzI4LjU5LDU1LjI1IDMzMi43Niw1NS4yNSAzMzcuMDYsNTUuMjUgMzQxLjM1LDU1LjI1IDM0NS41Miw1NS4yNSAzNDkuODEsNTUuMjUgMzUzLjk5LDU1LjI1IDM1OC4yOCw1NS4yNSAzNjIuNDUsNTUuMjUgMzY2Ljc0LDU1LjI1IDM3MS4wNCw1NS4yNSAzNzUuMjEsNTUuMjUgMzc5LjUwLDU1LjI1IDM4My42Nyw1NS4yNSAzODcuOTcsNTUuMjUgMzkyLjE0LDU1LjI1IDM5Ni40Myw1NS4yNSA0MDAuNzIsNTUuMjUgNDA0LjkwLDU1LjI1IDQwOS4xOSw1NS4yNSA0MTMuMzYsNTUuMjUgNDE3LjY1LDU1LjI1IDQyMS45NCw1NS4yNSA0MjYuMTIsNTUuMjUgNDMwLjQxLDU1LjI1IDQzNC41OCw1NS4yNSA0MzguODcsNTUuMjUgNDQzLjA1LDU1LjI1IDQ0Ny4zNCw1NS4yNSA0NTEuNjMsNTUuMjUgNDU1LjgwLDU1LjI1IDQ2MC4xMCw1NS4yNSA0NjQuMjcsNTUuMjUgNDY4LjU2LDU1LjI1IDQ3Mi43Myw1NS4yNSA0NzcuMDMsNTUuMjUgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAyLjEzOyBzdHJva2U6ICMyRTdEMzI7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPC9nPgo8ZyBjbGlwLXBhdGg9J3VybCgjY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSknPgo8dGV4dCB4PSczMC43NCcgeT0nMjYyLjAwJyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc1LjMzcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+NTwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzE5NC4yMycgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xMDwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzEyNi40NicgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xNTwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzU4LjY5JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjIwPC90ZXh0Pgo8dGV4dCB4PSc1Ny4wMCcgeT0nMzM3LjkwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc1LjMzcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MDwvdGV4dD4KPHRleHQgeD0nMTc2LjIyJyB5PSczMzcuOTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDkuNjBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzIxLjMxcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MTAwMDwvdGV4dD4KPHRleHQgeD0nMjk1LjQ1JyB5PSczMzcuOTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDkuNjBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzIxLjMxcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MjAwMDwvdGV4dD4KPHRleHQgeD0nNDE0LjY3JyB5PSczMzcuOTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDkuNjBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzIxLjMxcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MzAwMDwvdGV4dD4KPHRleHQgeD0nMjY3LjA3JyB5PSczNTEuNTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDEyLjAwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTE1LjM5cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+TnVtYmVyIG9mIGluZGl2aWR1YWxzPC90ZXh0Pgo8dGV4dCB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgxNC41NywxODQuMDEpIHJvdGF0ZSgtOTApJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiAxMi4wMHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzE0Mi4wNXB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPkV4cGVjdGVkIHNwZWNpZXMgcmljaG5lc3M8L3RleHQ+Cjx0ZXh0IHg9JzM2LjEyJyB5PSczMy44OCcgc3R5bGU9J2ZvbnQtc2l6ZTogMTIuMDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxNTAuMDhweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4zNTIzIGluZGl2aWR1YWxzLCAyMCBzcGVjaWVzPC90ZXh0Pgo8dGV4dCB4PSczNi4xMicgeT0nMTYuMjgnIHN0eWxlPSdmb250LXNpemU6IDE0LjQwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMjI2LjM5cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+SW5kaXZpZHVhbC1CYXNlZCBSYXJlZmFjdGlvbiBDdXJ2ZTwvdGV4dD4KPC9nPgo8L2c+Cjwvc3ZnPgo=" /><!-- --></p>
+<p>Rarefaction at higher orders down-weights the rare species. Passing
+<code>q = 1</code> and <code>q = 2</code> returns the Shannon and
+Simpson effective numbers, which saturate faster because they are
+governed by the common species rather than the long tail.
+<code>rarefy()</code> accepts any non-negative order; orders 0, 1, and 2
+use exact estimators while other orders report the Hill number of order
+<code>q</code> of the sampled composition.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>rare_q1 <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(species, <span class="at">q =</span> <span class="dv">1</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>rare_q2 <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(species, <span class="at">q =</span> <span class="dv">2</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">c</span>(<span class="at">q0 =</span> <span class="fu">max</span>(rare<span class="sc">$</span>expected), <span class="at">q1 =</span> <span class="fu">max</span>(rare_q1<span class="sc">$</span>expected), <span class="at">q2 =</span> <span class="fu">max</span>(rare_q2<span class="sc">$</span>expected))</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;       q0       q1       q2 </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; 20.00000 19.95649 20.01989</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>rare_q3 <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(species, <span class="at">q =</span> <span class="dv">3</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>rare_half <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(species, <span class="at">q =</span> <span class="fl">0.5</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">c</span>(<span class="at">q0.5 =</span> <span class="fu">max</span>(rare_half<span class="sc">$</span>expected), <span class="at">q3 =</span> <span class="fu">max</span>(rare_q3<span class="sc">$</span>expected))</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;     q0.5       q3 </span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; 19.97833 19.86778</span></span></code></pre></div>
+<div id="analytical-sample-based-alternatives" class="section level3">
+<h3>Analytical sample-based alternatives</h3>
+<p>Rarefaction can also be sample-based: instead of subsampling
+individuals, the unit subsampled is the site. <strong>spacc</strong>
+provides three analytical curves over sites that need no simulation.
+<code>mao_tau()</code> is the exact expected sample-based rarefaction of
+Colwell et al. (2004); it binarizes the matrix and returns a data frame
+with <code>sites</code>, <code>expected</code>, <code>sd</code>, and
+analytical 95 percent <code>lower</code>/<code>upper</code> bounds.
+<code>coleman()</code> returns the Coleman et al. (1982) expectation
+with columns <code>sites</code>, <code>expected</code>, <code>sd</code>.
+<code>collector()</code> returns the species count in data order, with
+columns <code>sites</code>, <code>species</code>, which traces how the
+actual survey accumulated species rather than a randomized
+expectation.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>mt <span class="ot">&lt;-</span> <span class="fu">mao_tau</span>(species)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>cm <span class="ot">&lt;-</span> <span class="fu">coleman</span>(species)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">collector</span>(species)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="fu">head</span>(mt, <span class="dv">3</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;   sites expected        sd     lower    upper</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; 1     1 16.88333 10.575273 -3.844201 37.61087</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 2     2 19.52655  4.270861 11.155666 27.89744</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 3     3 19.93016  1.648929 16.698256 23.16206</span></span></code></pre></div>
+<p>Plotting the three together shows that the randomized expectations
+from <code>mao_tau()</code> and <code>coleman()</code> lie close to each
+other, while the collector’s curve fluctuates around them because it
+follows the arbitrary order of the rows. The Mao Tau band gives the
+analytical uncertainty without any bootstrap.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">sites =</span> mt<span class="sc">$</span>sites, <span class="at">S =</span> mt<span class="sc">$</span>expected, <span class="at">kind =</span> <span class="st">&quot;Mao Tau&quot;</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">sites =</span> cm<span class="sc">$</span>sites, <span class="at">S =</span> cm<span class="sc">$</span>expected, <span class="at">kind =</span> <span class="st">&quot;Coleman&quot;</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">sites =</span> cl<span class="sc">$</span>sites, <span class="at">S =</span> cl<span class="sc">$</span>species,  <span class="at">kind =</span> <span class="st">&quot;Collector&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(df, ggplot2<span class="sc">::</span><span class="fu">aes</span>(sites, S, <span class="at">color =</span> kind)) <span class="sc">+</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Sites&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">color =</span> <span class="cn">NULL</span>) <span class="sc">+</span> transparent</span></code></pre></div>
+<p><img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnID8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB4bWxuczp4bGluaz0naHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluaycgd2lkdGg9JzUwNC4wMHB0JyBoZWlnaHQ9JzM2MC4wMHB0JyB2aWV3Qm94PScwIDAgNTA0LjAwIDM2MC4wMCc+CjxnIGNsYXNzPSdzdmdsaXRlJz4KPGRlZnM+CiAgPHN0eWxlIHR5cGU9J3RleHQvY3NzJz48IVtDREFUQVsKICAgIC5zdmdsaXRlIGxpbmUsIC5zdmdsaXRlIHBvbHlsaW5lLCAuc3ZnbGl0ZSBwb2x5Z29uLCAuc3ZnbGl0ZSBwYXRoLCAuc3ZnbGl0ZSByZWN0LCAuc3ZnbGl0ZSBjaXJjbGUgewogICAgICBmaWxsOiBub25lOwogICAgICBzdHJva2U6ICMwMDAwMDA7CiAgICAgIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICAgICAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKICAgICAgc3Ryb2tlLW1pdGVybGltaXQ6IDEwLjAwOwogICAgfQogICAgLnN2Z2xpdGUgdGV4dCB7CiAgICAgIHdoaXRlLXNwYWNlOiBwcmU7CiAgICB9CiAgICAuc3ZnbGl0ZSBnLmdseXBoZ3JvdXAgcGF0aCB7CiAgICAgIGZpbGw6IGluaGVyaXQ7CiAgICAgIHN0cm9rZTogbm9uZTsKICAgIH0KICBdXT48L3N0eWxlPgo8L2RlZnM+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHN0eWxlPSdzdHJva2U6IG5vbmU7IGZpbGw6ICNGRkZGRkY7Jy8+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSc+CiAgICA8cmVjdCB4PScwLjAwJyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+CjxyZWN0IHg9JzAuMDAwMDAwMDAwMDAwMDY0JyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiBub25lOycgLz4KPC9nPgo8ZGVmcz4KICA8Y2xpcFBhdGggaWQ9J2NwTXpNdU1UTjhOREU0TGpZMGZEVXVORGg4TXpJNExqVXcnPgogICAgPHJlY3QgeD0nMzMuMTMnIHk9JzUuNDgnIHdpZHRoPSczODUuNTEnIGhlaWdodD0nMzIzLjAyJyAvPgogIDwvY2xpcFBhdGg+CjwvZGVmcz4KPGcgY2xpcC1wYXRoPSd1cmwoI2NwTXpNdU1UTjhOREU0TGpZMGZEVXVORGg4TXpJNExqVXcpJz4KPHJlY3QgeD0nMzMuMTMnIHk9JzUuNDgnIHdpZHRoPSczODUuNTEnIGhlaWdodD0nMzIzLjAyJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6IG5vbmU7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczMy4xMywyNTUuNzIgNDE4LjY0LDI1NS43MiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuNTM7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczMy4xMywxNjEuNTAgNDE4LjY0LDE2MS41MCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuNTM7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczMy4xMyw2Ny4yNyA0MTguNjQsNjcuMjcgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAwLjUzOyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMTA0LjExLDMyOC41MCAxMDQuMTEsNS40OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuNTM7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPScyMjIuOTEsMzI4LjUwIDIyMi45MSw1LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC41Mzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzM0MS43MiwzMjguNTAgMzQxLjcyLDUuNDggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAwLjUzOyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzMuMTMsMzAyLjgzIDQxOC42NCwzMDIuODMgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzMuMTMsMjA4LjYxIDQxOC42NCwyMDguNjEgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzMuMTMsMTE0LjM4IDQxOC42NCwxMTQuMzggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzMuMTMsMjAuMTYgNDE4LjY0LDIwLjE2ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzQ0LjcxLDMyOC41MCA0NC43MSw1LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzE2My41MSwzMjguNTAgMTYzLjUxLDUuNDggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMjgyLjMxLDMyOC41MCAyODIuMzEsNS40OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0MDEuMTIsMzI4LjUwIDQwMS4xMiw1LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzUwLjY1LDMxMy44MiA1Ni41OSw2NC43NyA2Mi41MywyNi43NCA2OC40NywyMS4wOSA3NC40MSwyMC4yOSA4MC4zNSwyMC4xOCA4Ni4yOSwyMC4xNiA5Mi4yMywyMC4xNiA5OC4xNywyMC4xNiAxMDQuMTEsMjAuMTYgMTEwLjA1LDIwLjE2IDExNS45OSwyMC4xNiAxMjEuOTMsMjAuMTYgMTI3Ljg3LDIwLjE2IDEzMy44MSwyMC4xNiAxMzkuNzUsMjAuMTYgMTQ1LjY5LDIwLjE2IDE1MS42MywyMC4xNiAxNTcuNTcsMjAuMTYgMTYzLjUxLDIwLjE2IDE2OS40NSwyMC4xNiAxNzUuMzksMjAuMTYgMTgxLjMzLDIwLjE2IDE4Ny4yNywyMC4xNiAxOTMuMjEsMjAuMTYgMTk5LjE1LDIwLjE2IDIwNS4wOSwyMC4xNiAyMTEuMDMsMjAuMTYgMjE2Ljk3LDIwLjE2IDIyMi45MSwyMC4xNiAyMjguODUsMjAuMTYgMjM0Ljc5LDIwLjE2IDI0MC43MywyMC4xNiAyNDYuNjcsMjAuMTYgMjUyLjYxLDIwLjE2IDI1OC41NSwyMC4xNiAyNjQuNDksMjAuMTYgMjcwLjQzLDIwLjE2IDI3Ni4zNywyMC4xNiAyODIuMzEsMjAuMTYgMjg4LjI1LDIwLjE2IDI5NC4xOSwyMC4xNiAzMDAuMTQsMjAuMTYgMzA2LjA4LDIwLjE2IDMxMi4wMiwyMC4xNiAzMTcuOTYsMjAuMTYgMzIzLjkwLDIwLjE2IDMyOS44NCwyMC4xNiAzMzUuNzgsMjAuMTYgMzQxLjcyLDIwLjE2IDM0Ny42NiwyMC4xNiAzNTMuNjAsMjAuMTYgMzU5LjU0LDIwLjE2IDM2NS40OCwyMC4xNiAzNzEuNDIsMjAuMTYgMzc3LjM2LDIwLjE2IDM4My4zMCwyMC4xNiAzODkuMjQsMjAuMTYgMzk1LjE4LDIwLjE2IDQwMS4xMiwyMC4xNiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuOTI7IHN0cm9rZTogI0Y4NzY2RDsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc1MC42NSwzMDIuODMgNTYuNTksMzAyLjgzIDYyLjUzLDExNC4zOCA2OC40NywxMTQuMzggNzQuNDEsMTE0LjM4IDgwLjM1LDExNC4zOCA4Ni4yOSwyMC4xNiA5Mi4yMywyMC4xNiA5OC4xNywyMC4xNiAxMDQuMTEsMjAuMTYgMTEwLjA1LDIwLjE2IDExNS45OSwyMC4xNiAxMjEuOTMsMjAuMTYgMTI3Ljg3LDIwLjE2IDEzMy44MSwyMC4xNiAxMzkuNzUsMjAuMTYgMTQ1LjY5LDIwLjE2IDE1MS42MywyMC4xNiAxNTcuNTcsMjAuMTYgMTYzLjUxLDIwLjE2IDE2OS40NSwyMC4xNiAxNzUuMzksMjAuMTYgMTgxLjMzLDIwLjE2IDE4Ny4yNywyMC4xNiAxOTMuMjEsMjAuMTYgMTk5LjE1LDIwLjE2IDIwNS4wOSwyMC4xNiAyMTEuMDMsMjAuMTYgMjE2Ljk3LDIwLjE2IDIyMi45MSwyMC4xNiAyMjguODUsMjAuMTYgMjM0Ljc5LDIwLjE2IDI0MC43MywyMC4xNiAyNDYuNjcsMjAuMTYgMjUyLjYxLDIwLjE2IDI1OC41NSwyMC4xNiAyNjQuNDksMjAuMTYgMjcwLjQzLDIwLjE2IDI3Ni4zNywyMC4xNiAyODIuMzEsMjAuMTYgMjg4LjI1LDIwLjE2IDI5NC4xOSwyMC4xNiAzMDAuMTQsMjAuMTYgMzA2LjA4LDIwLjE2IDMxMi4wMiwyMC4xNiAzMTcuOTYsMjAuMTYgMzIzLjkwLDIwLjE2IDMyOS44NCwyMC4xNiAzMzUuNzgsMjAuMTYgMzQxLjcyLDIwLjE2IDM0Ny42NiwyMC4xNiAzNTMuNjAsMjAuMTYgMzU5LjU0LDIwLjE2IDM2NS40OCwyMC4xNiAzNzEuNDIsMjAuMTYgMzc3LjM2LDIwLjE2IDM4My4zMCwyMC4xNiAzODkuMjQsMjAuMTYgMzk1LjE4LDIwLjE2IDQwMS4xMiwyMC4xNiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuOTI7IHN0cm9rZTogIzAwQkEzODsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc1MC42NSwzMTMuODIgNTYuNTksNjQuNzcgNjIuNTMsMjYuNzQgNjguNDcsMjEuMDkgNzQuNDEsMjAuMjkgODAuMzUsMjAuMTggODYuMjksMjAuMTYgOTIuMjMsMjAuMTYgOTguMTcsMjAuMTYgMTA0LjExLDIwLjE2IDExMC4wNSwyMC4xNiAxMTUuOTksMjAuMTYgMTIxLjkzLDIwLjE2IDEyNy44NywyMC4xNiAxMzMuODEsMjAuMTYgMTM5Ljc1LDIwLjE2IDE0NS42OSwyMC4xNiAxNTEuNjMsMjAuMTYgMTU3LjU3LDIwLjE2IDE2My41MSwyMC4xNiAxNjkuNDUsMjAuMTYgMTc1LjM5LDIwLjE2IDE4MS4zMywyMC4xNiAxODcuMjcsMjAuMTYgMTkzLjIxLDIwLjE2IDE5OS4xNSwyMC4xNiAyMDUuMDksMjAuMTYgMjExLjAzLDIwLjE2IDIxNi45NywyMC4xNiAyMjIuOTEsMjAuMTYgMjI4Ljg1LDIwLjE2IDIzNC43OSwyMC4xNiAyNDAuNzMsMjAuMTYgMjQ2LjY3LDIwLjE2IDI1Mi42MSwyMC4xNiAyNTguNTUsMjAuMTYgMjY0LjQ5LDIwLjE2IDI3MC40MywyMC4xNiAyNzYuMzcsMjAuMTYgMjgyLjMxLDIwLjE2IDI4OC4yNSwyMC4xNiAyOTQuMTksMjAuMTYgMzAwLjE0LDIwLjE2IDMwNi4wOCwyMC4xNiAzMTIuMDIsMjAuMTYgMzE3Ljk2LDIwLjE2IDMyMy45MCwyMC4xNiAzMjkuODQsMjAuMTYgMzM1Ljc4LDIwLjE2IDM0MS43MiwyMC4xNiAzNDcuNjYsMjAuMTYgMzUzLjYwLDIwLjE2IDM1OS41NCwyMC4xNiAzNjUuNDgsMjAuMTYgMzcxLjQyLDIwLjE2IDM3Ny4zNiwyMC4xNiAzODMuMzAsMjAuMTYgMzg5LjI0LDIwLjE2IDM5NS4xOCwyMC4xNiA0MDEuMTIsMjAuMTYgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjkyOyBzdHJva2U6ICM2MTlDRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPC9nPgo8ZyBjbGlwLXBhdGg9J3VybCgjY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSknPgo8dGV4dCB4PScyOC4yMCcgeT0nMzA1Ljk4JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA4LjgwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc5Ljc4cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MTc8L3RleHQ+Cjx0ZXh0IHg9JzI4LjIwJyB5PScyMTEuNzYnIHRleHQtYW5jaG9yPSdlbmQnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzkuNzhweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xODwvdGV4dD4KPHRleHQgeD0nMjguMjAnIHk9JzExNy41MycgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nOS43OHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE5PC90ZXh0Pgo8dGV4dCB4PScyOC4yMCcgeT0nMjMuMzEnIHRleHQtYW5jaG9yPSdlbmQnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzkuNzhweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4yMDwvdGV4dD4KPHBvbHlsaW5lIHBvaW50cz0nMzAuMzksMzAyLjgzIDMzLjEzLDMwMi44MyAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczMC4zOSwyMDguNjEgMzMuMTMsMjA4LjYxICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjMzMzMzMzOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzMwLjM5LDExNC4zOCAzMy4xMywxMTQuMzggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICMzMzMzMzM7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzAuMzksMjAuMTYgMzMuMTMsMjAuMTYgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICMzMzMzMzM7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNDQuNzEsMzMxLjI0IDQ0LjcxLDMyOC41MCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPScxNjMuNTEsMzMxLjI0IDE2My41MSwzMjguNTAgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICMzMzMzMzM7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMjgyLjMxLDMzMS4yNCAyODIuMzEsMzI4LjUwICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjMzMzMzMzOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzQwMS4xMiwzMzEuMjQgNDAxLjEyLDMyOC41MCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8dGV4dCB4PSc0NC43MScgeT0nMzM5Ljc0JyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA4LjgwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc0Ljg5cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MDwvdGV4dD4KPHRleHQgeD0nMTYzLjUxJyB5PSczMzkuNzQnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzkuNzhweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4yMDwvdGV4dD4KPHRleHQgeD0nMjgyLjMxJyB5PSczMzkuNzQnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzkuNzhweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz40MDwvdGV4dD4KPHRleHQgeD0nNDAxLjEyJyB5PSczMzkuNzQnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzkuNzhweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz42MDwvdGV4dD4KPHRleHQgeD0nMjI1Ljg4JyB5PSczNTIuMjAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDExLjAwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMjQuNDdweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz5TaXRlczwvdGV4dD4KPHRleHQgdHJhbnNmb3JtPSd0cmFuc2xhdGUoMTMuMzYsMTY2Ljk5KSByb3RhdGUoLTkwKScgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogMTEuMDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSczOS4xNnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPlNwZWNpZXM8L3RleHQ+CjxyZWN0IHg9JzQyOS42MCcgeT0nMTM1LjU5JyB3aWR0aD0nNjguOTInIGhlaWdodD0nNjIuODAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogbm9uZTsgZmlsbDogI0ZGRkZGRjsnIC8+CjxyZWN0IHg9JzQzNS4wOCcgeT0nMTQxLjA3JyB3aWR0aD0nMTcuMjgnIGhlaWdodD0nMTcuMjgnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogbm9uZTsnIC8+CjxsaW5lIHgxPSc0MzYuODEnIHkxPScxNDkuNzEnIHgyPSc0NTAuNjMnIHkyPScxNDkuNzEnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuOTI7IHN0cm9rZTogI0Y4NzY2RDsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cmVjdCB4PSc0MzUuMDgnIHk9JzE1OC4zNScgd2lkdGg9JzE3LjI4JyBoZWlnaHQ9JzE3LjI4JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6IG5vbmU7JyAvPgo8bGluZSB4MT0nNDM2LjgxJyB5MT0nMTY2Ljk5JyB4Mj0nNDUwLjYzJyB5Mj0nMTY2Ljk5JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjkyOyBzdHJva2U6ICMwMEJBMzg7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHJlY3QgeD0nNDM1LjA4JyB5PScxNzUuNjMnIHdpZHRoPScxNy4yOCcgaGVpZ2h0PScxNy4yOCcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiBub25lOycgLz4KPGxpbmUgeDE9JzQzNi44MScgeTE9JzE4NC4yNycgeDI9JzQ1MC42MycgeTI9JzE4NC4yNycgc3R5bGU9J3N0cm9rZS13aWR0aDogMS45Mjsgc3Ryb2tlOiAjNjE5Q0ZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjx0ZXh0IHg9JzQ1Ny44NCcgeT0nMTUyLjg2JyBzdHlsZT0nZm9udC1zaXplOiA4LjgwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMzUuMjBweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz5Db2xlbWFuPC90ZXh0Pgo8dGV4dCB4PSc0NTcuODQnIHk9JzE3MC4xNCcgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzM0LjcwcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+Q29sbGVjdG9yPC90ZXh0Pgo8dGV4dCB4PSc0NTcuODQnIHk9JzE4Ny40Micgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzMzLjU4cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+TWFvIFRhdTwvdGV4dD4KPC9nPgo8L2c+Cjwvc3ZnPgo=" /><!-- --></p>
+<p>The Mao Tau and Coleman expectations are the sample-based analogue of
+Hurlbert’s individual-based curve. They standardize on number of sites;
+<code>rarefy()</code> standardizes on number of individuals. Which axis
+matters depends on whether effort varies through plot count or through
+depth of sampling within plots.</p>
+</div>
+</div>
+<div id="coverage-based-standardization" class="section level2">
+<h2>Coverage-based standardization</h2>
+<p><code>spaccCoverage()</code> accumulates sites spatially while
+tracking the Chao-Jost coverage at each step, across many random
+starting seeds. The default estimator is <code>&quot;chao&quot;</code>; a
+<code>&quot;chiu&quot;</code> option uses incidence frequencies and is recommended
+when the sampling units are plots rather than independent individuals.
+The result is a <code>spacc_coverage</code> object holding
+<code>n_seeds</code> by <code>n_sites</code> matrices of richness,
+individuals, and coverage.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>cov_result <span class="ot">&lt;-</span> <span class="fu">spaccCoverage</span>(species, coords, <span class="at">n_seeds =</span> <span class="dv">30</span>, <span class="at">progress =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">print</span>(cov_result)</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; spacc coverage (Chao-Jost 2012): 60 sites, 20 species, 30 seeds</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; Mean final coverage: 100.0%</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; Mean final richness: 20.0 species</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">plot</span>(cov_result) <span class="sc">+</span> transparent</span></code></pre></div>
+<p><img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnID8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB4bWxuczp4bGluaz0naHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluaycgd2lkdGg9JzUwNC4wMHB0JyBoZWlnaHQ9JzM2MC4wMHB0JyB2aWV3Qm94PScwIDAgNTA0LjAwIDM2MC4wMCc+CjxnIGNsYXNzPSdzdmdsaXRlJz4KPGRlZnM+CiAgPHN0eWxlIHR5cGU9J3RleHQvY3NzJz48IVtDREFUQVsKICAgIC5zdmdsaXRlIGxpbmUsIC5zdmdsaXRlIHBvbHlsaW5lLCAuc3ZnbGl0ZSBwb2x5Z29uLCAuc3ZnbGl0ZSBwYXRoLCAuc3ZnbGl0ZSByZWN0LCAuc3ZnbGl0ZSBjaXJjbGUgewogICAgICBmaWxsOiBub25lOwogICAgICBzdHJva2U6ICMwMDAwMDA7CiAgICAgIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICAgICAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKICAgICAgc3Ryb2tlLW1pdGVybGltaXQ6IDEwLjAwOwogICAgfQogICAgLnN2Z2xpdGUgdGV4dCB7CiAgICAgIHdoaXRlLXNwYWNlOiBwcmU7CiAgICB9CiAgICAuc3ZnbGl0ZSBnLmdseXBoZ3JvdXAgcGF0aCB7CiAgICAgIGZpbGw6IGluaGVyaXQ7CiAgICAgIHN0cm9rZTogbm9uZTsKICAgIH0KICBdXT48L3N0eWxlPgo8L2RlZnM+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHN0eWxlPSdzdHJva2U6IG5vbmU7IGZpbGw6ICNGRkZGRkY7Jy8+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSc+CiAgICA8cmVjdCB4PScwLjAwJyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+CjxyZWN0IHg9JzAuMDAnIHk9JzAuMDAnIHdpZHRoPSc1MDQuMDAnIGhlaWdodD0nMzYwLjAwJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8L2c+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNell1TVRKOE5EazRMakF5ZkRJMUxqSTRmRE15TlM0Mk5RPT0nPgogICAgPHJlY3QgeD0nMzYuMTInIHk9JzI1LjI4JyB3aWR0aD0nNDYxLjkwJyBoZWlnaHQ9JzMwMC4zNycgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE16WXVNVEo4TkRrNExqQXlmREkxTGpJNGZETXlOUzQyTlE9PSknPgo8cmVjdCB4PSczNi4xMicgeT0nMjUuMjgnIHdpZHRoPSc0NjEuOTAnIGhlaWdodD0nMzAwLjM3JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8cG9seWdvbiBwb2ludHM9JzU3LjExLDM4Ljk0IDY0LjIzLDM4Ljk0IDcxLjM1LDM4Ljk0IDc4LjQ3LDM4Ljk0IDg1LjU4LDM4Ljk0IDkyLjcwLDM4Ljk0IDk5LjgyLDM4Ljk0IDEwNi45MywzOC45NCAxMTQuMDUsMzguOTQgMTIxLjE3LDM4Ljk0IDEyOC4yOSwzOC45NCAxMzUuNDAsMzguOTQgMTQyLjUyLDM4Ljk0IDE0OS42NCwzOC45NCAxNTYuNzUsMzguOTQgMTYzLjg3LDM4Ljk0IDE3MC45OSwzOC45NCAxNzguMTEsMzguOTQgMTg1LjIyLDM4Ljk0IDE5Mi4zNCwzOC45NCAxOTkuNDYsMzguOTQgMjA2LjU4LDM4Ljk0IDIxMy42OSwzOC45NCAyMjAuODEsMzguOTQgMjI3LjkzLDM4Ljk0IDIzNS4wNCwzOC45NCAyNDIuMTYsMzguOTQgMjQ5LjI4LDM4Ljk0IDI1Ni40MCwzOC45NCAyNjMuNTEsMzguOTQgMjcwLjYzLDM4Ljk0IDI3Ny43NSwzOC45NCAyODQuODYsMzguOTQgMjkxLjk4LDM4Ljk0IDI5OS4xMCwzOC45NCAzMDYuMjIsMzguOTQgMzEzLjMzLDM4Ljk0IDMyMC40NSwzOC45NCAzMjcuNTcsMzguOTQgMzM0LjY4LDM4Ljk0IDM0MS44MCwzOC45NCAzNDguOTIsMzguOTQgMzU2LjA0LDM4Ljk0IDM2My4xNSwzOC45NCAzNzAuMjcsMzguOTQgMzc3LjM5LDM4Ljk0IDM4NC41MCwzOC45NCAzOTEuNjIsMzguOTQgMzk4Ljc0LDM4Ljk0IDQwNS44NiwzOC45NCA0MTIuOTcsMzguOTQgNDIwLjA5LDM4Ljk0IDQyNy4yMSwzOC45NCA0MzQuMzIsMzguOTQgNDQxLjQ0LDM4Ljk0IDQ0OC41NiwzOC45NCA0NTUuNjgsMzguOTQgNDYyLjc5LDM4Ljk0IDQ2OS45MSwzOC45NCA0NzcuMDMsMzguOTQgNDc3LjAzLDM4Ljk0IDQ2OS45MSwzOC45NCA0NjIuNzksMzguOTQgNDU1LjY4LDM4Ljk0IDQ0OC41NiwzOC45NCA0NDEuNDQsMzguOTQgNDM0LjMyLDM4Ljk0IDQyNy4yMSwzOC45NCA0MjAuMDksMzguOTQgNDEyLjk3LDM4Ljk0IDQwNS44NiwzOC45NCAzOTguNzQsMzguOTQgMzkxLjYyLDM4Ljk0IDM4NC41MCwzOC45NCAzNzcuMzksMzguOTQgMzcwLjI3LDM4Ljk0IDM2My4xNSwzOC45NCAzNTYuMDQsMzguOTQgMzQ4LjkyLDM4Ljk0IDM0MS44MCwzOC45NCAzMzQuNjgsMzguOTQgMzI3LjU3LDM4Ljk0IDMyMC40NSwzOC45NCAzMTMuMzMsMzguOTQgMzA2LjIyLDM4Ljk0IDI5OS4xMCwzOC45NCAyOTEuOTgsMzguOTQgMjg0Ljg2LDM4Ljk0IDI3Ny43NSwzOC45NCAyNzAuNjMsMzguOTQgMjYzLjUxLDM4Ljk0IDI1Ni40MCwzOC45NCAyNDkuMjgsMzguOTQgMjQyLjE2LDM4Ljk0IDIzNS4wNCwzOC45NCAyMjcuOTMsMzguOTQgMjIwLjgxLDM4Ljk0IDIxMy42OSwzOC45NCAyMDYuNTgsMzguOTQgMTk5LjQ2LDM4Ljk0IDE5Mi4zNCwzOC45NCAxODUuMjIsMzguOTQgMTc4LjExLDM4Ljk0IDE3MC45OSwzOC45NCAxNjMuODcsMzguOTQgMTU2Ljc1LDM4Ljk0IDE0OS42NCwzOC45NCAxNDIuNTIsMzguOTQgMTM1LjQwLDM4Ljk0IDEyOC4yOSwzOC45NCAxMjEuMTcsMzguOTQgMTE0LjA1LDM4Ljk0IDEwNi45MywzOC45NCA5OS44MiwzOC45NCA5Mi43MCwzOC45NCA4NS41OCwzOC45NCA3OC40NywzOC45NCA3MS4zNSw2NC44MiA2NC4yMywxOTQuMjMgNTcuMTEsMzEyLjAwICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC4wMDsgc3Ryb2tlOiBub25lOyBzdHJva2UtbGluZWNhcDogYnV0dDsgZmlsbDogIzRDQUY1MDsgZmlsbC1vcGFjaXR5OiAwLjIwOycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsMzguOTQgNjQuMjMsMzguOTQgNzEuMzUsMzguOTQgNzguNDcsMzguOTQgODUuNTgsMzguOTQgOTIuNzAsMzguOTQgOTkuODIsMzguOTQgMTA2LjkzLDM4Ljk0IDExNC4wNSwzOC45NCAxMjEuMTcsMzguOTQgMTI4LjI5LDM4Ljk0IDEzNS40MCwzOC45NCAxNDIuNTIsMzguOTQgMTQ5LjY0LDM4Ljk0IDE1Ni43NSwzOC45NCAxNjMuODcsMzguOTQgMTcwLjk5LDM4Ljk0IDE3OC4xMSwzOC45NCAxODUuMjIsMzguOTQgMTkyLjM0LDM4Ljk0IDE5OS40NiwzOC45NCAyMDYuNTgsMzguOTQgMjEzLjY5LDM4Ljk0IDIyMC44MSwzOC45NCAyMjcuOTMsMzguOTQgMjM1LjA0LDM4Ljk0IDI0Mi4xNiwzOC45NCAyNDkuMjgsMzguOTQgMjU2LjQwLDM4Ljk0IDI2My41MSwzOC45NCAyNzAuNjMsMzguOTQgMjc3Ljc1LDM4Ljk0IDI4NC44NiwzOC45NCAyOTEuOTgsMzguOTQgMjk5LjEwLDM4Ljk0IDMwNi4yMiwzOC45NCAzMTMuMzMsMzguOTQgMzIwLjQ1LDM4Ljk0IDMyNy41NywzOC45NCAzMzQuNjgsMzguOTQgMzQxLjgwLDM4Ljk0IDM0OC45MiwzOC45NCAzNTYuMDQsMzguOTQgMzYzLjE1LDM4Ljk0IDM3MC4yNywzOC45NCAzNzcuMzksMzguOTQgMzg0LjUwLDM4Ljk0IDM5MS42MiwzOC45NCAzOTguNzQsMzguOTQgNDA1Ljg2LDM4Ljk0IDQxMi45NywzOC45NCA0MjAuMDksMzguOTQgNDI3LjIxLDM4Ljk0IDQzNC4zMiwzOC45NCA0NDEuNDQsMzguOTQgNDQ4LjU2LDM4Ljk0IDQ1NS42OCwzOC45NCA0NjIuNzksMzguOTQgNDY5LjkxLDM4Ljk0IDQ3Ny4wMywzOC45NCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMTY7IHN0cm9rZTogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0NzcuMDMsMzguOTQgNDY5LjkxLDM4Ljk0IDQ2Mi43OSwzOC45NCA0NTUuNjgsMzguOTQgNDQ4LjU2LDM4Ljk0IDQ0MS40NCwzOC45NCA0MzQuMzIsMzguOTQgNDI3LjIxLDM4Ljk0IDQyMC4wOSwzOC45NCA0MTIuOTcsMzguOTQgNDA1Ljg2LDM4Ljk0IDM5OC43NCwzOC45NCAzOTEuNjIsMzguOTQgMzg0LjUwLDM4Ljk0IDM3Ny4zOSwzOC45NCAzNzAuMjcsMzguOTQgMzYzLjE1LDM4Ljk0IDM1Ni4wNCwzOC45NCAzNDguOTIsMzguOTQgMzQxLjgwLDM4Ljk0IDMzNC42OCwzOC45NCAzMjcuNTcsMzguOTQgMzIwLjQ1LDM4Ljk0IDMxMy4zMywzOC45NCAzMDYuMjIsMzguOTQgMjk5LjEwLDM4Ljk0IDI5MS45OCwzOC45NCAyODQuODYsMzguOTQgMjc3Ljc1LDM4Ljk0IDI3MC42MywzOC45NCAyNjMuNTEsMzguOTQgMjU2LjQwLDM4Ljk0IDI0OS4yOCwzOC45NCAyNDIuMTYsMzguOTQgMjM1LjA0LDM4Ljk0IDIyNy45MywzOC45NCAyMjAuODEsMzguOTQgMjEzLjY5LDM4Ljk0IDIwNi41OCwzOC45NCAxOTkuNDYsMzguOTQgMTkyLjM0LDM4Ljk0IDE4NS4yMiwzOC45NCAxNzguMTEsMzguOTQgMTcwLjk5LDM4Ljk0IDE2My44NywzOC45NCAxNTYuNzUsMzguOTQgMTQ5LjY0LDM4Ljk0IDE0Mi41MiwzOC45NCAxMzUuNDAsMzguOTQgMTI4LjI5LDM4Ljk0IDEyMS4xNywzOC45NCAxMTQuMDUsMzguOTQgMTA2LjkzLDM4Ljk0IDk5LjgyLDM4Ljk0IDkyLjcwLDM4Ljk0IDg1LjU4LDM4Ljk0IDc4LjQ3LDM4Ljk0IDcxLjM1LDY0LjgyIDY0LjIzLDE5NC4yMyA1Ny4xMSwzMTIuMDAgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsMTMzLjg0IDY0LjIzLDUyLjc0IDcxLjM1LDQwLjY2IDc4LjQ3LDM4Ljk0IDg1LjU4LDM4Ljk0IDkyLjcwLDM4Ljk0IDk5LjgyLDM4Ljk0IDEwNi45MywzOC45NCAxMTQuMDUsMzguOTQgMTIxLjE3LDM4Ljk0IDEyOC4yOSwzOC45NCAxMzUuNDAsMzguOTQgMTQyLjUyLDM4Ljk0IDE0OS42NCwzOC45NCAxNTYuNzUsMzguOTQgMTYzLjg3LDM4Ljk0IDE3MC45OSwzOC45NCAxNzguMTEsMzguOTQgMTg1LjIyLDM4Ljk0IDE5Mi4zNCwzOC45NCAxOTkuNDYsMzguOTQgMjA2LjU4LDM4Ljk0IDIxMy42OSwzOC45NCAyMjAuODEsMzguOTQgMjI3LjkzLDM4Ljk0IDIzNS4wNCwzOC45NCAyNDIuMTYsMzguOTQgMjQ5LjI4LDM4Ljk0IDI1Ni40MCwzOC45NCAyNjMuNTEsMzguOTQgMjcwLjYzLDM4Ljk0IDI3Ny43NSwzOC45NCAyODQuODYsMzguOTQgMjkxLjk4LDM4Ljk0IDI5OS4xMCwzOC45NCAzMDYuMjIsMzguOTQgMzEzLjMzLDM4Ljk0IDMyMC40NSwzOC45NCAzMjcuNTcsMzguOTQgMzM0LjY4LDM4Ljk0IDM0MS44MCwzOC45NCAzNDguOTIsMzguOTQgMzU2LjA0LDM4Ljk0IDM2My4xNSwzOC45NCAzNzAuMjcsMzguOTQgMzc3LjM5LDM4Ljk0IDM4NC41MCwzOC45NCAzOTEuNjIsMzguOTQgMzk4Ljc0LDM4Ljk0IDQwNS44NiwzOC45NCA0MTIuOTcsMzguOTQgNDIwLjA5LDM4Ljk0IDQyNy4yMSwzOC45NCA0MzQuMzIsMzguOTQgNDQxLjQ0LDM4Ljk0IDQ0OC41NiwzOC45NCA0NTUuNjgsMzguOTQgNDYyLjc5LDM4Ljk0IDQ2OS45MSwzOC45NCA0NzcuMDMsMzguOTQgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAyLjEzOyBzdHJva2U6ICMyRTdEMzI7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPC9nPgo8ZyBjbGlwLXBhdGg9J3VybCgjY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSknPgo8dGV4dCB4PSczMC43NCcgeT0nMzI3LjA4JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc1LjMzcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+OTwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzI0OS40MycgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xMjwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzE3MS43OCcgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xNTwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9Jzk0LjE0JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE4PC90ZXh0Pgo8dGV4dCB4PSc1MC4wMCcgeT0nMzM3LjkwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc1LjMzcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MDwvdGV4dD4KPHRleHQgeD0nMTkyLjM0JyB5PSczMzcuOTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDkuNjBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzEwLjY2cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MjA8L3RleHQ+Cjx0ZXh0IHg9JzMzNC42OCcgeT0nMzM3LjkwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjQwPC90ZXh0Pgo8dGV4dCB4PSc0NzcuMDMnIHk9JzMzNy45MCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz42MDwvdGV4dD4KPHRleHQgeD0nMjY3LjA3JyB5PSczNTEuNTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDEyLjAwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nOTguMDNweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz5TaXRlcyBhY2N1bXVsYXRlZDwvdGV4dD4KPHRleHQgdHJhbnNmb3JtPSd0cmFuc2xhdGUoMTQuNTcsMTc1LjQ3KSByb3RhdGUoLTkwKScgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogMTIuMDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc5MC43MHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPlNwZWNpZXMgcmljaG5lc3M8L3RleHQ+Cjx0ZXh0IHg9JzM2LjEyJyB5PScxNi4yOCcgc3R5bGU9J2ZvbnQtc2l6ZTogMTQuNDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScyNDUuNThweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz5Db3ZlcmFnZS1CYXNlZCBTcGF0aWFsIEFjY3VtdWxhdGlvbjwvdGV4dD4KPC9nPgo8L2c+Cjwvc3ZnPgo=" /><!-- --></p>
+<div id="interpolation-at-fixed-coverage" class="section level3">
+<h3>Interpolation at fixed coverage</h3>
+<p><code>interpolateCoverage()</code> reads richness off each seed’s
+curve at the requested coverage levels by linear interpolation. The
+return is a data frame with one row per seed and one column per target,
+so the spread across rows is the across-seed uncertainty introduced by
+the choice of starting point.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>interp <span class="ot">&lt;-</span> <span class="fu">interpolateCoverage</span>(cov_result, <span class="at">target =</span> <span class="fu">c</span>(<span class="fl">0.90</span>, <span class="fl">0.95</span>, <span class="fl">0.99</span>))</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">colMeans</span>(interp), <span class="dv">2</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt;   C90   C95   C99 </span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; 18.63 19.13 19.66</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">apply</span>(interp, <span class="dv">2</span>, sd), <span class="dv">3</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt;   C90   C95   C99 </span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 1.490 1.273 1.031</span></span></code></pre></div>
+<p>The across-seed standard deviation widens toward higher coverage
+targets, because those targets sit near or beyond the end of some seeds’
+curves where interpolation has less support. The mean richness at 90
+percent coverage is the fair point estimate; the column standard
+deviation is its seed-induced uncertainty.</p>
+<p>Each seed is a different spatial path through the sites, starting
+from a different point and accumulating neighbours in a different order.
+Because the sites are spatially structured, the order in which they are
+added changes the coverage reached at each step, and so two seeds can
+hit 90 percent coverage at different richness values. Averaging over
+seeds marginalizes out the arbitrary choice of starting point, and the
+spread of the per-seed values is the honest uncertainty that choice
+introduces. Reporting only the mean would hide that spread; reporting
+per-seed values exposes it, which is why
+<code>interpolateCoverage()</code> returns the full matrix rather than a
+collapsed summary.</p>
+</div>
+</div>
+<div id="extrapolation-beyond-observed" class="section level2">
+<h2>Extrapolation beyond observed</h2>
+<p>When a target coverage exceeds the maximum any seed reached,
+interpolation is impossible and <code>extrapolateCoverage()</code>
+switches to the Chao et al. (2014) asymptotic estimators. For <span class="math inline">\(q = 0\)</span> it uses the Chao1 coverage deficit;
+for <span class="math inline">\(q = 1\)</span> and <span class="math inline">\(q = 2\)</span> it applies the corresponding
+Shannon and Simpson asymptotics. The returned
+<code>spacc_coverage_ext</code> object reports the observed coverage and
+richness alongside the extrapolated values.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>extrap <span class="ot">&lt;-</span> <span class="fu">extrapolateCoverage</span>(cov_result, <span class="at">target_coverage =</span> <span class="fu">c</span>(<span class="fl">0.95</span>, <span class="fl">0.99</span>), <span class="at">q =</span> <span class="dv">0</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">print</span>(extrap)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; Coverage-based extrapolation</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt; -------------------------------- </span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt; Diversity order: q = 0</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; Observed coverage: 100.0%</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; Observed richness: 20.0</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; Extrapolated richness:</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt;   C=95%: 19.1 (+/- 1.3)</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt;   C=99%: 19.7 (+/- 1.0)</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="fu">summary</span>(extrap)</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt;     target_coverage mean_richness       sd    lower upper</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co">#&gt; C95            0.95      19.13281 1.273474 15.00000    20</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt; C99            0.99      19.65881 1.030564 16.50835    20</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">plot</span>(extrap) <span class="sc">+</span> transparent</span></code></pre></div>
+<p><img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnID8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB4bWxuczp4bGluaz0naHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluaycgd2lkdGg9JzUwNC4wMHB0JyBoZWlnaHQ9JzM2MC4wMHB0JyB2aWV3Qm94PScwIDAgNTA0LjAwIDM2MC4wMCc+CjxnIGNsYXNzPSdzdmdsaXRlJz4KPGRlZnM+CiAgPHN0eWxlIHR5cGU9J3RleHQvY3NzJz48IVtDREFUQVsKICAgIC5zdmdsaXRlIGxpbmUsIC5zdmdsaXRlIHBvbHlsaW5lLCAuc3ZnbGl0ZSBwb2x5Z29uLCAuc3ZnbGl0ZSBwYXRoLCAuc3ZnbGl0ZSByZWN0LCAuc3ZnbGl0ZSBjaXJjbGUgewogICAgICBmaWxsOiBub25lOwogICAgICBzdHJva2U6ICMwMDAwMDA7CiAgICAgIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICAgICAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKICAgICAgc3Ryb2tlLW1pdGVybGltaXQ6IDEwLjAwOwogICAgfQogICAgLnN2Z2xpdGUgdGV4dCB7CiAgICAgIHdoaXRlLXNwYWNlOiBwcmU7CiAgICB9CiAgICAuc3ZnbGl0ZSBnLmdseXBoZ3JvdXAgcGF0aCB7CiAgICAgIGZpbGw6IGluaGVyaXQ7CiAgICAgIHN0cm9rZTogbm9uZTsKICAgIH0KICBdXT48L3N0eWxlPgo8L2RlZnM+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHN0eWxlPSdzdHJva2U6IG5vbmU7IGZpbGw6ICNGRkZGRkY7Jy8+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSc+CiAgICA8cmVjdCB4PScwLjAwJyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+CjxyZWN0IHg9JzAuMDAnIHk9JzAuMDAnIHdpZHRoPSc1MDQuMDAnIGhlaWdodD0nMzYwLjAwJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8L2c+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNell1TVRKOE5EazRMakF5ZkRReUxqTTRmRE15TlM0Mk5RPT0nPgogICAgPHJlY3QgeD0nMzYuMTInIHk9JzQyLjM4JyB3aWR0aD0nNDYxLjkwJyBoZWlnaHQ9JzI4My4yOCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE16WXVNVEo4TkRrNExqQXlmRFF5TGpNNGZETXlOUzQyTlE9PSknPgo8cmVjdCB4PSczNi4xMicgeT0nNDIuMzgnIHdpZHRoPSc0NjEuOTAnIGhlaWdodD0nMjgzLjI4JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8cG9seWdvbiBwb2ludHM9JzU3LjExLDU1LjI1IDQzMS4zMiw1NS4yNSA0NjIuNjksNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDYyLjY5LDc5LjY2IDQzMS4zMiwyMDEuNzEgNTcuMTEsMzEyLjc4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC4wMDsgc3Ryb2tlOiBub25lOyBzdHJva2UtbGluZWNhcDogYnV0dDsgZmlsbDogIzRDQUY1MDsgZmlsbC1vcGFjaXR5OiAwLjIwOycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsNTUuMjUgNDMxLjMyLDU1LjI1IDQ2Mi42OSw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMTY7IHN0cm9rZTogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NjIuNjksNzkuNjYgNDMxLjMyLDIwMS43MSA1Ny4xMSwzMTIuNzggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsMTQ0Ljc2IDQzMS4zMiw2OC4yNyA0NjIuNjksNTYuODggNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgNDc3LjAzLDU1LjI1IDQ3Ny4wMyw1NS4yNSA0NzcuMDMsNTUuMjUgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAyLjEzOyBzdHJva2U6ICMyRTdEMzI7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPGxpbmUgeDE9JzQ3Ny4wMycgeTE9JzMyNS42NScgeDI9JzQ3Ny4wMycgeTI9JzQyLjM4JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6ICM3RjdGN0Y7IHN0cm9rZS1kYXNoYXJyYXk6IDYuMjEsNi4yMTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8L2c+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+Cjx0ZXh0IHg9JzMwLjc0JyB5PSczMjcuMTknIHRleHQtYW5jaG9yPSdlbmQnIHN0eWxlPSdmb250LXNpemU6IDkuNjBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzUuMzNweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz45PC90ZXh0Pgo8dGV4dCB4PSczMC43NCcgeT0nMjUzLjk3JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjEyPC90ZXh0Pgo8dGV4dCB4PSczMC43NCcgeT0nMTgwLjc0JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE1PC90ZXh0Pgo8dGV4dCB4PSczMC43NCcgeT0nMTA3LjUxJyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE4PC90ZXh0Pgo8dGV4dCB4PScxMjMuMzknIHk9JzMzNy45MCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTguNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4wLjg1PC90ZXh0Pgo8dGV4dCB4PScyNDEuMjcnIHk9JzMzNy45MCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTguNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4wLjkwPC90ZXh0Pgo8dGV4dCB4PSczNTkuMTUnIHk9JzMzNy45MCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTguNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4wLjk1PC90ZXh0Pgo8dGV4dCB4PSc0NzcuMDMnIHk9JzMzNy45MCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTguNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xLjAwPC90ZXh0Pgo8dGV4dCB4PScyNjcuMDcnIHk9JzM1MS41MCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogMTIuMDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc5My4zOHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPlNhbXBsZSBjb3ZlcmFnZTwvdGV4dD4KPHRleHQgdHJhbnNmb3JtPSd0cmFuc2xhdGUoMTQuNTcsMTg0LjAxKSByb3RhdGUoLTkwKScgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogMTIuMDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc4NC4zNnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPkRpdmVyc2l0eSAocSA9IDApPC90ZXh0Pgo8dGV4dCB4PSczNi4xMicgeT0nMzMuODgnIHN0eWxlPSdmb250LXNpemU6IDEyLjAwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTUyLjA1cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+T2JzZXJ2ZWQgY292ZXJhZ2U6IDEwMC4wJTwvdGV4dD4KPHRleHQgeD0nMzYuMTInIHk9JzE2LjI4JyBzdHlsZT0nZm9udC1zaXplOiAxNC40MHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzE5NS45OHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPkNvdmVyYWdlLUJhc2VkIEV4dHJhcG9sYXRpb248L3RleHQ+CjwvZz4KPC9nPgo8L3N2Zz4K" /><!-- --></p>
+<p>Extrapolation is reliable only over a limited range past the observed
+coverage. The dashed reference line marks the observed coverage; the
+orange points beyond it are model-based projections whose uncertainty
+grows with distance from the data. Targets far past the observed maximum
+should be read as informed extrapolation, not measurement.</p>
+</div>
+<div id="hill-numbers-with-coverage" class="section level2">
+<h2>Hill numbers with coverage</h2>
+<p><code>spaccHillCoverage()</code> tracks Hill numbers for several
+orders and coverage at the same time, so the three diversity orders can
+be standardized to one completeness. Supplying
+<code>target_coverage</code> adds a <code>standardized</code> component
+holding each order’s value interpolated to that coverage for every
+seed.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>hc <span class="ot">&lt;-</span> <span class="fu">spaccHillCoverage</span>(species, coords, <span class="at">q =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>                        <span class="at">target_coverage =</span> <span class="fl">0.9</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                        <span class="at">n_seeds =</span> <span class="dv">20</span>, <span class="at">progress =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="fu">print</span>(hc)</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt; spacc Hill + Coverage: 60 sites, 20 species, 20 seeds</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Orders (q): 0, 1, 2</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; Mean final coverage: 1.000</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt; Target coverage: 0.9</span></span></code></pre></div>
+<p>The <code>standardized</code> list gives the seed-averaged effective
+number of species at 90 percent coverage for each order. Richness (<span class="math inline">\(q = 0\)</span>) is highest and most seed-variable,
+while <span class="math inline">\(q = 2\)</span> is lowest and most
+stable, the expected ordering <span class="math inline">\({}^{0}D \ge
+{}^{1}D \ge {}^{2}D\)</span>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">sapply</span>(hc<span class="sc">$</span>standardized, mean)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">#&gt;     q0.0     q1.0     q2.0 </span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">#&gt; 19.04151 16.88006 15.42177</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">plot</span>(hc, <span class="at">xaxis =</span> <span class="st">&quot;coverage&quot;</span>) <span class="sc">+</span> transparent</span></code></pre></div>
+<p><img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnID8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB4bWxuczp4bGluaz0naHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluaycgd2lkdGg9JzUwNC4wMHB0JyBoZWlnaHQ9JzM2MC4wMHB0JyB2aWV3Qm94PScwIDAgNTA0LjAwIDM2MC4wMCc+CjxnIGNsYXNzPSdzdmdsaXRlJz4KPGRlZnM+CiAgPHN0eWxlIHR5cGU9J3RleHQvY3NzJz48IVtDREFUQVsKICAgIC5zdmdsaXRlIGxpbmUsIC5zdmdsaXRlIHBvbHlsaW5lLCAuc3ZnbGl0ZSBwb2x5Z29uLCAuc3ZnbGl0ZSBwYXRoLCAuc3ZnbGl0ZSByZWN0LCAuc3ZnbGl0ZSBjaXJjbGUgewogICAgICBmaWxsOiBub25lOwogICAgICBzdHJva2U6ICMwMDAwMDA7CiAgICAgIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICAgICAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKICAgICAgc3Ryb2tlLW1pdGVybGltaXQ6IDEwLjAwOwogICAgfQogICAgLnN2Z2xpdGUgdGV4dCB7CiAgICAgIHdoaXRlLXNwYWNlOiBwcmU7CiAgICB9CiAgICAuc3ZnbGl0ZSBnLmdseXBoZ3JvdXAgcGF0aCB7CiAgICAgIGZpbGw6IGluaGVyaXQ7CiAgICAgIHN0cm9rZTogbm9uZTsKICAgIH0KICBdXT48L3N0eWxlPgo8L2RlZnM+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHN0eWxlPSdzdHJva2U6IG5vbmU7IGZpbGw6ICNGRkZGRkY7Jy8+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSc+CiAgICA8cmVjdCB4PScwLjAwJyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+CjxyZWN0IHg9JzAuMDAnIHk9JzAuMDAnIHdpZHRoPSc1MDQuMDAnIGhlaWdodD0nMzYwLjAwJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8L2c+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNell1TVRKOE5EazRMakF5ZkRJMUxqSTRmREk0TkM0ME5nPT0nPgogICAgPHJlY3QgeD0nMzYuMTInIHk9JzI1LjI4JyB3aWR0aD0nNDYxLjkwJyBoZWlnaHQ9JzI1OS4xOCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE16WXVNVEo4TkRrNExqQXlmREkxTGpJNGZESTROQzQwTmc9PSknPgo8cmVjdCB4PSczNi4xMicgeT0nMjUuMjgnIHdpZHRoPSc0NjEuOTAnIGhlaWdodD0nMjU5LjE4JyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7JyAvPgo8cG9seWdvbiBwb2ludHM9JzU3LjExLDM3LjA2IDQwNS4yNSwzNy4wNiA0NzMuODksMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDczLjg5LDM3LjA2IDQwNS4yNSwxMTUuMTYgNTcuMTEsMjMwLjk3ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC4wMDsgc3Ryb2tlOiBub25lOyBzdHJva2UtbGluZWNhcDogYnV0dDsgZmlsbDogI0Y4NzY2RDsgZmlsbC1vcGFjaXR5OiAwLjIwOycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsMzcuMDYgNDA1LjI1LDM3LjA2IDQ3My44OSwzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMTY7IHN0cm9rZTogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzMuODksMzcuMDYgNDA1LjI1LDExNS4xNiA1Ny4xMSwyMzAuOTcgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlnb24gcG9pbnRzPSc1Ny4xMSw2Ni4wNyA0MDUuMjUsNDkuNjUgNDczLjg5LDQ1LjUzIDQ3Ny4wMyw0NS4wNyA0NzcuMDMsNDUuMjQgNDc3LjAzLDQzLjU0IDQ3Ny4wMyw0My41NiA0NzcuMDMsNDMuMzYgNDc3LjAzLDQyLjIyIDQ3Ny4wMyw0MS4xNiA0NzcuMDMsNDEuODUgNDc3LjAzLDQxLjUyIDQ3Ny4wMyw0MS4zNiA0NzcuMDMsNDEuMTQgNDc3LjAzLDQwLjQ1IDQ3Ny4wMywzOS44MiA0NzcuMDMsMzkuNjMgNDc3LjAzLDM5LjU0IDQ3Ny4wMywzOS4yMSA0NzcuMDMsMzkuMzkgNDc3LjAzLDM5LjUwIDQ3Ny4wMywzOS4yNiA0NzcuMDMsMzkuMDggNDc3LjAzLDM4Ljk0IDQ3Ny4wMywzOC43OSA0NzcuMDMsMzguNzAgNDc3LjAzLDM4LjU5IDQ3Ny4wMywzOC42MCA0NzcuMDMsMzguNTggNDc3LjAzLDM4LjYyIDQ3Ny4wMywzOC42NCA0NzcuMDMsMzguNTcgNDc3LjAzLDM4LjQ4IDQ3Ny4wMywzOC4zNiA0NzcuMDMsMzguMTYgNDc3LjAzLDM4LjEwIDQ3Ny4wMywzOC4wMyA0NzcuMDMsMzguMTIgNDc3LjAzLDM4LjA4IDQ3Ny4wMywzOC4wOSA0NzcuMDMsMzguMTkgNDc3LjAzLDM4LjI1IDQ3Ny4wMywzOC4yMyA0NzcuMDMsMzguMjIgNDc3LjAzLDM4LjIzIDQ3Ny4wMywzOC4yMiA0NzcuMDMsMzguMTIgNDc3LjAzLDM4LjAwIDQ3Ny4wMywzNy45NyA0NzcuMDMsMzcuOTQgNDc3LjAzLDM3Ljk0IDQ3Ny4wMywzNy45MSA0NzcuMDMsMzcuODEgNDc3LjAzLDM3LjkwIDQ3Ny4wMywzNy44NCA0NzcuMDMsMzcuODcgNDc3LjAzLDM3LjgzIDQ3Ny4wMywzNy44MyA0NzcuMDMsMzcuOTIgNDc3LjAzLDM4LjAwIDQ3Ny4wMywzOC4wMCA0NzcuMDMsMzguMTUgNDc3LjAzLDM4LjIwIDQ3Ny4wMywzOC4zNCA0NzcuMDMsMzguMzUgNDc3LjAzLDM4LjUyIDQ3Ny4wMywzOC41NSA0NzcuMDMsMzguNjggNDc3LjAzLDM4LjY1IDQ3Ny4wMywzOC44NCA0NzcuMDMsMzguOTAgNDc3LjAzLDM4LjkyIDQ3Ny4wMywzOC45NCA0NzcuMDMsMzkuMDMgNDc3LjAzLDM5LjA1IDQ3Ny4wMywzOS4yMSA0NzcuMDMsMzkuMjQgNDc3LjAzLDM5LjI0IDQ3Ny4wMywzOS4xOCA0NzcuMDMsMzkuMTcgNDc3LjAzLDM5LjQ1IDQ3Ny4wMywzOS44MiA0NzcuMDMsMzkuODYgNDc3LjAzLDM5LjY3IDQ3Ny4wMywzOS43OSA0NzcuMDMsNDAuMDIgNDc3LjAzLDQwLjI1IDQ3Ny4wMyw0MC4yOCA0NzcuMDMsNDAuMjMgNDc3LjAzLDQwLjIxIDQ3Ny4wMyw0MC41MiA0NzcuMDMsNDAuNjUgNDc3LjAzLDQwLjc5IDQ3Ny4wMyw0MC45NiA0NzcuMDMsNDAuODAgNDc3LjAzLDQwLjkzIDQ3Ny4wMyw0MS4xNSA0NzcuMDMsNDEuMzQgNDc3LjAzLDQxLjkyIDQ3Ny4wMyw0MS41NyA0NzcuMDMsNDEuNTUgNDc3LjAzLDQxLjk3IDQ3Ny4wMyw0Mi4xNSA0NzcuMDMsNDIuNDEgNDc3LjAzLDQyLjQ3IDQ3Ny4wMyw0Mi45NCA0NzcuMDMsNDMuNjQgNDc3LjAzLDQ0LjY0IDQ3Ny4wMyw0NS40MiA0NzcuMDMsNDYuMTIgNDc3LjAzLDQ1Ljg2IDQ3Ny4wMyw0OC4xOSA0NzcuMDMsNTMuODcgNDc3LjAzLDYxLjYyIDQ3Ny4wMyw2MS40MSA0NzcuMDMsNjIuMTEgNDc3LjAzLDc3Ljg3IDQ3My44OSw4MS41MCA0MDUuMjUsMTY3LjM0IDU3LjExLDI1NC44MiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuMDA7IHN0cm9rZTogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7IGZpbGw6ICMwMEJBMzg7IGZpbGwtb3BhY2l0eTogMC4yMDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzU3LjExLDY2LjA3IDQwNS4yNSw0OS42NSA0NzMuODksNDUuNTMgNDc3LjAzLDQ1LjA3IDQ3Ny4wMyw0NS4yNCA0NzcuMDMsNDMuNTQgNDc3LjAzLDQzLjU2IDQ3Ny4wMyw0My4zNiA0NzcuMDMsNDIuMjIgNDc3LjAzLDQxLjE2IDQ3Ny4wMyw0MS44NSA0NzcuMDMsNDEuNTIgNDc3LjAzLDQxLjM2IDQ3Ny4wMyw0MS4xNCA0NzcuMDMsNDAuNDUgNDc3LjAzLDM5LjgyIDQ3Ny4wMywzOS42MyA0NzcuMDMsMzkuNTQgNDc3LjAzLDM5LjIxIDQ3Ny4wMywzOS4zOSA0NzcuMDMsMzkuNTAgNDc3LjAzLDM5LjI2IDQ3Ny4wMywzOS4wOCA0NzcuMDMsMzguOTQgNDc3LjAzLDM4Ljc5IDQ3Ny4wMywzOC43MCA0NzcuMDMsMzguNTkgNDc3LjAzLDM4LjYwIDQ3Ny4wMywzOC41OCA0NzcuMDMsMzguNjIgNDc3LjAzLDM4LjY0IDQ3Ny4wMywzOC41NyA0NzcuMDMsMzguNDggNDc3LjAzLDM4LjM2IDQ3Ny4wMywzOC4xNiA0NzcuMDMsMzguMTAgNDc3LjAzLDM4LjAzIDQ3Ny4wMywzOC4xMiA0NzcuMDMsMzguMDggNDc3LjAzLDM4LjA5IDQ3Ny4wMywzOC4xOSA0NzcuMDMsMzguMjUgNDc3LjAzLDM4LjIzIDQ3Ny4wMywzOC4yMiA0NzcuMDMsMzguMjMgNDc3LjAzLDM4LjIyIDQ3Ny4wMywzOC4xMiA0NzcuMDMsMzguMDAgNDc3LjAzLDM3Ljk3IDQ3Ny4wMywzNy45NCA0NzcuMDMsMzcuOTQgNDc3LjAzLDM3LjkxIDQ3Ny4wMywzNy44MSA0NzcuMDMsMzcuOTAgNDc3LjAzLDM3Ljg0IDQ3Ny4wMywzNy44NyA0NzcuMDMsMzcuODMgNDc3LjAzLDM3LjgzIDQ3Ny4wMywzNy45MiA0NzcuMDMsMzguMDAgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNDc3LjAzLDM4LjAwIDQ3Ny4wMywzOC4xNSA0NzcuMDMsMzguMjAgNDc3LjAzLDM4LjM0IDQ3Ny4wMywzOC4zNSA0NzcuMDMsMzguNTIgNDc3LjAzLDM4LjU1IDQ3Ny4wMywzOC42OCA0NzcuMDMsMzguNjUgNDc3LjAzLDM4Ljg0IDQ3Ny4wMywzOC45MCA0NzcuMDMsMzguOTIgNDc3LjAzLDM4Ljk0IDQ3Ny4wMywzOS4wMyA0NzcuMDMsMzkuMDUgNDc3LjAzLDM5LjIxIDQ3Ny4wMywzOS4yNCA0NzcuMDMsMzkuMjQgNDc3LjAzLDM5LjE4IDQ3Ny4wMywzOS4xNyA0NzcuMDMsMzkuNDUgNDc3LjAzLDM5LjgyIDQ3Ny4wMywzOS44NiA0NzcuMDMsMzkuNjcgNDc3LjAzLDM5Ljc5IDQ3Ny4wMyw0MC4wMiA0NzcuMDMsNDAuMjUgNDc3LjAzLDQwLjI4IDQ3Ny4wMyw0MC4yMyA0NzcuMDMsNDAuMjEgNDc3LjAzLDQwLjUyIDQ3Ny4wMyw0MC42NSA0NzcuMDMsNDAuNzkgNDc3LjAzLDQwLjk2IDQ3Ny4wMyw0MC44MCA0NzcuMDMsNDAuOTMgNDc3LjAzLDQxLjE1IDQ3Ny4wMyw0MS4zNCA0NzcuMDMsNDEuOTIgNDc3LjAzLDQxLjU3IDQ3Ny4wMyw0MS41NSA0NzcuMDMsNDEuOTcgNDc3LjAzLDQyLjE1IDQ3Ny4wMyw0Mi40MSA0NzcuMDMsNDIuNDcgNDc3LjAzLDQyLjk0IDQ3Ny4wMyw0My42NCA0NzcuMDMsNDQuNjQgNDc3LjAzLDQ1LjQyIDQ3Ny4wMyw0Ni4xMiA0NzcuMDMsNDUuODYgNDc3LjAzLDQ4LjE5IDQ3Ny4wMyw1My44NyA0NzcuMDMsNjEuNjIgNDc3LjAzLDYxLjQxIDQ3Ny4wMyw2Mi4xMSA0NzcuMDMsNzcuODcgNDczLjg5LDgxLjUwIDQwNS4yNSwxNjcuMzQgNTcuMTEsMjU0LjgyICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4xNjsgc3Ryb2tlOiBub25lOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5Z29uIHBvaW50cz0nNTcuMTEsODYuNTcgNDA1LjI1LDYwLjM5IDQ3My44OSw1Mi44MiA0NzcuMDMsNTIuMDEgNDc3LjAzLDUyLjQzIDQ3Ny4wMyw0OS42MSA0NzcuMDMsNDkuNzAgNDc3LjAzLDQ5LjQ1IDQ3Ny4wMyw0Ny4yMyA0NzcuMDMsNDUuMTYgNDc3LjAzLDQ2LjQ1IDQ3Ny4wMyw0NS44MyA0NzcuMDMsNDUuNTUgNDc3LjAzLDQ1LjAzIDQ3Ny4wMyw0My44MiA0NzcuMDMsNDIuNjEgNDc3LjAzLDQyLjE5IDQ3Ny4wMyw0MS45NiA0NzcuMDMsNDEuMzEgNDc3LjAzLDQxLjY5IDQ3Ny4wMyw0MS45MSA0NzcuMDMsNDEuNDcgNDc3LjAzLDQxLjEyIDQ3Ny4wMyw0MC44MiA0NzcuMDMsNDAuNTUgNDc3LjAzLDQwLjM4IDQ3Ny4wMyw0MC4xNyA0NzcuMDMsNDAuMTkgNDc3LjAzLDQwLjE3IDQ3Ny4wMyw0MC4yNSA0NzcuMDMsNDAuMjYgNDc3LjAzLDQwLjEzIDQ3Ny4wMywzOS45NCA0NzcuMDMsMzkuNjkgNDc3LjAzLDM5LjI4IDQ3Ny4wMywzOS4xNSA0NzcuMDMsMzkuMDAgNDc3LjAzLDM5LjE4IDQ3Ny4wMywzOS4xMSA0NzcuMDMsMzkuMTQgNDc3LjAzLDM5LjM1IDQ3Ny4wMywzOS40NSA0NzcuMDMsMzkuNDIgNDc3LjAzLDM5LjM5IDQ3Ny4wMywzOS40MSA0NzcuMDMsMzkuNDAgNDc3LjAzLDM5LjE4IDQ3Ny4wMywzOC45NSA0NzcuMDMsMzguODYgNDc3LjAzLDM4LjgxIDQ3Ny4wMywzOC44MiA0NzcuMDMsMzguNzQgNDc3LjAzLDM4LjU0IDQ3Ny4wMywzOC43MiA0NzcuMDMsMzguNjEgNDc3LjAzLDM4LjY3IDQ3Ny4wMywzOC42MCA0NzcuMDMsMzguNTkgNDc3LjAzLDM4Ljc5IDQ3Ny4wMywzOC45NSA0NzcuMDMsMzguOTUgNDc3LjAzLDM5LjI2IDQ3Ny4wMywzOS4zNiA0NzcuMDMsMzkuNjQgNDc3LjAzLDM5LjY3IDQ3Ny4wMyw0MC4wMSA0NzcuMDMsNDAuMDkgNDc3LjAzLDQwLjM2IDQ3Ny4wMyw0MC4yOSA0NzcuMDMsNDAuNjggNDc3LjAzLDQwLjgwIDQ3Ny4wMyw0MC44NCA0NzcuMDMsNDAuODggNDc3LjAzLDQxLjA4IDQ3Ny4wMyw0MS4xNCA0NzcuMDMsNDEuNDQgNDc3LjAzLDQxLjUyIDQ3Ny4wMyw0MS41MSA0NzcuMDMsNDEuMzkgNDc3LjAzLDQxLjM2IDQ3Ny4wMyw0MS45MyA0NzcuMDMsNDIuNjUgNDc3LjAzLDQyLjczIDQ3Ny4wMyw0Mi4zMyA0NzcuMDMsNDIuNTggNDc3LjAzLDQzLjAxIDQ3Ny4wMyw0My40NiA0NzcuMDMsNDMuNTEgNDc3LjAzLDQzLjQ0IDQ3Ny4wMyw0My40MSA0NzcuMDMsNDMuOTYgNDc3LjAzLDQ0LjIyIDQ3Ny4wMyw0NC41OSA0NzcuMDMsNDQuOTMgNDc3LjAzLDQ0LjU1IDQ3Ny4wMyw0NC44MSA0NzcuMDMsNDUuMjAgNDc3LjAzLDQ1LjU3IDQ3Ny4wMyw0Ni43NCA0NzcuMDMsNDYuMDUgNDc3LjAzLDQ2LjA3IDQ3Ny4wMyw0Ni44NCA0NzcuMDMsNDcuMTAgNDc3LjAzLDQ3LjgzIDQ3Ny4wMyw0Ny44NyA0NzcuMDMsNDguNzkgNDc3LjAzLDUwLjEwIDQ3Ny4wMyw1Mi4xOCA0NzcuMDMsNTMuNzcgNDc3LjAzLDU1LjE0IDQ3Ny4wMyw1NC44NyA0NzcuMDMsNTkuMTAgNDc3LjAzLDY5LjIwIDQ3Ny4wMyw4MS43MCA0NzcuMDMsODEuMTUgNDc3LjAzLDgzLjIwIDQ3Ny4wMywxMTAuNTggNDczLjg5LDExNy4wMSA0MDUuMjUsMjA1LjM2IDU3LjExLDI3Mi42OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuMDA7IHN0cm9rZTogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7IGZpbGw6ICM2MTlDRkY7IGZpbGwtb3BhY2l0eTogMC4yMDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzU3LjExLDg2LjU3IDQwNS4yNSw2MC4zOSA0NzMuODksNTIuODIgNDc3LjAzLDUyLjAxIDQ3Ny4wMyw1Mi40MyA0NzcuMDMsNDkuNjEgNDc3LjAzLDQ5LjcwIDQ3Ny4wMyw0OS40NSA0NzcuMDMsNDcuMjMgNDc3LjAzLDQ1LjE2IDQ3Ny4wMyw0Ni40NSA0NzcuMDMsNDUuODMgNDc3LjAzLDQ1LjU1IDQ3Ny4wMyw0NS4wMyA0NzcuMDMsNDMuODIgNDc3LjAzLDQyLjYxIDQ3Ny4wMyw0Mi4xOSA0NzcuMDMsNDEuOTYgNDc3LjAzLDQxLjMxIDQ3Ny4wMyw0MS42OSA0NzcuMDMsNDEuOTEgNDc3LjAzLDQxLjQ3IDQ3Ny4wMyw0MS4xMiA0NzcuMDMsNDAuODIgNDc3LjAzLDQwLjU1IDQ3Ny4wMyw0MC4zOCA0NzcuMDMsNDAuMTcgNDc3LjAzLDQwLjE5IDQ3Ny4wMyw0MC4xNyA0NzcuMDMsNDAuMjUgNDc3LjAzLDQwLjI2IDQ3Ny4wMyw0MC4xMyA0NzcuMDMsMzkuOTQgNDc3LjAzLDM5LjY5IDQ3Ny4wMywzOS4yOCA0NzcuMDMsMzkuMTUgNDc3LjAzLDM5LjAwIDQ3Ny4wMywzOS4xOCA0NzcuMDMsMzkuMTEgNDc3LjAzLDM5LjE0IDQ3Ny4wMywzOS4zNSA0NzcuMDMsMzkuNDUgNDc3LjAzLDM5LjQyIDQ3Ny4wMywzOS4zOSA0NzcuMDMsMzkuNDEgNDc3LjAzLDM5LjQwIDQ3Ny4wMywzOS4xOCA0NzcuMDMsMzguOTUgNDc3LjAzLDM4Ljg2IDQ3Ny4wMywzOC44MSA0NzcuMDMsMzguODIgNDc3LjAzLDM4Ljc0IDQ3Ny4wMywzOC41NCA0NzcuMDMsMzguNzIgNDc3LjAzLDM4LjYxIDQ3Ny4wMywzOC42NyA0NzcuMDMsMzguNjAgNDc3LjAzLDM4LjU5IDQ3Ny4wMywzOC43OSA0NzcuMDMsMzguOTUgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNDc3LjAzLDM4Ljk1IDQ3Ny4wMywzOS4yNiA0NzcuMDMsMzkuMzYgNDc3LjAzLDM5LjY0IDQ3Ny4wMywzOS42NyA0NzcuMDMsNDAuMDEgNDc3LjAzLDQwLjA5IDQ3Ny4wMyw0MC4zNiA0NzcuMDMsNDAuMjkgNDc3LjAzLDQwLjY4IDQ3Ny4wMyw0MC44MCA0NzcuMDMsNDAuODQgNDc3LjAzLDQwLjg4IDQ3Ny4wMyw0MS4wOCA0NzcuMDMsNDEuMTQgNDc3LjAzLDQxLjQ0IDQ3Ny4wMyw0MS41MiA0NzcuMDMsNDEuNTEgNDc3LjAzLDQxLjM5IDQ3Ny4wMyw0MS4zNiA0NzcuMDMsNDEuOTMgNDc3LjAzLDQyLjY1IDQ3Ny4wMyw0Mi43MyA0NzcuMDMsNDIuMzMgNDc3LjAzLDQyLjU4IDQ3Ny4wMyw0My4wMSA0NzcuMDMsNDMuNDYgNDc3LjAzLDQzLjUxIDQ3Ny4wMyw0My40NCA0NzcuMDMsNDMuNDEgNDc3LjAzLDQzLjk2IDQ3Ny4wMyw0NC4yMiA0NzcuMDMsNDQuNTkgNDc3LjAzLDQ0LjkzIDQ3Ny4wMyw0NC41NSA0NzcuMDMsNDQuODEgNDc3LjAzLDQ1LjIwIDQ3Ny4wMyw0NS41NyA0NzcuMDMsNDYuNzQgNDc3LjAzLDQ2LjA1IDQ3Ny4wMyw0Ni4wNyA0NzcuMDMsNDYuODQgNDc3LjAzLDQ3LjEwIDQ3Ny4wMyw0Ny44MyA0NzcuMDMsNDcuODcgNDc3LjAzLDQ4Ljc5IDQ3Ny4wMyw1MC4xMCA0NzcuMDMsNTIuMTggNDc3LjAzLDUzLjc3IDQ3Ny4wMyw1NS4xNCA0NzcuMDMsNTQuODcgNDc3LjAzLDU5LjEwIDQ3Ny4wMyw2OS4yMCA0NzcuMDMsODEuNzAgNDc3LjAzLDgxLjE1IDQ3Ny4wMyw4My4yMCA0NzcuMDMsMTEwLjU4IDQ3My44OSwxMTcuMDEgNDA1LjI1LDIwNS4zNiA1Ny4xMSwyNzIuNjggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTcuMTEsODAuMTUgNDA1LjI1LDQ0LjYwIDQ3My44OSwzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiA0NzcuMDMsMzcuMDYgNDc3LjAzLDM3LjA2IDQ3Ny4wMywzNy4wNiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDIuMTM7IHN0cm9rZTogI0Y4NzY2RDsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc1Ny4xMSwxMjUuNDUgNDA1LjI1LDc4LjA3IDQ3My44OSw2MS44MCA0NzcuMDMsNTYuOTUgNDc3LjAzLDUxLjY1IDQ3Ny4wMyw0OS41OCA0NzcuMDMsNDcuOTQgNDc3LjAzLDQ2LjAzIDQ3Ny4wMyw0NC40MCA0NzcuMDMsNDMuNTcgNDc3LjAzLDQzLjQ4IDQ3Ny4wMyw0Mi45MSA0NzcuMDMsNDIuNTUgNDc3LjAzLDQyLjI1IDQ3Ny4wMyw0MS43OCA0NzcuMDMsNDEuNTUgNDc3LjAzLDQxLjI1IDQ3Ny4wMyw0MS4wNCA0NzcuMDMsNDAuNzIgNDc3LjAzLDQwLjU3IDQ3Ny4wMyw0MC40MSA0NzcuMDMsNDAuMzYgNDc3LjAzLDQwLjA5IDQ3Ny4wMywzOS45MiA0NzcuMDMsMzkuODAgNDc3LjAzLDM5LjY5IDQ3Ny4wMywzOS43MSA0NzcuMDMsMzkuNjAgNDc3LjAzLDM5LjQ5IDQ3Ny4wMywzOS40MSA0NzcuMDMsMzkuMzMgNDc3LjAzLDM5LjMyIDQ3Ny4wMywzOS4yNCA0NzcuMDMsMzkuMjYgNDc3LjAzLDM5LjEzIDQ3Ny4wMywzOC45OSA0NzcuMDMsMzguOTAgNDc3LjAzLDM4LjkyIDQ3Ny4wMywzOC45MSA0NzcuMDMsMzguODMgNDc3LjAzLDM4Ljc1IDQ3Ny4wMywzOC43NCA0NzcuMDMsMzguNzAgNDc3LjAzLDM4LjY3IDQ3Ny4wMywzOC42MiA0NzcuMDMsMzguNTkgNDc3LjAzLDM4LjUzIDQ3Ny4wMywzOC40NyA0NzcuMDMsMzguNDEgNDc3LjAzLDM4LjM3IDQ3Ny4wMywzOC4zNyA0NzcuMDMsMzguMjggNDc3LjAzLDM4LjIzIDQ3Ny4wMywzOC4yMiA0NzcuMDMsMzguMTcgNDc3LjAzLDM4LjE0IDQ3Ny4wMywzOC4wNCA0NzcuMDMsMzguMDUgNDc3LjAzLDM4LjAzIDQ3Ny4wMywzOC4wMCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDIuMTM7IHN0cm9rZTogIzAwQkEzODsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc1Ny4xMSwxNTYuNDYgNDA1LjI1LDEwMi41NCA0NzMuODksODEuNDggNDc3LjAzLDc0LjExIDQ3Ny4wMyw2NC43NiA0NzcuMDMsNjAuOTMgNDc3LjAzLDU3Ljg1IDQ3Ny4wMyw1NC40OSA0NzcuMDMsNTEuNDggNDc3LjAzLDQ5LjkzIDQ3Ny4wMyw0OS43NiA0NzcuMDMsNDguNjIgNDc3LjAzLDQ3LjkwIDQ3Ny4wMyw0Ny4zNSA0NzcuMDMsNDYuNDUgNDc3LjAzLDQ2LjAyIDQ3Ny4wMyw0NS40NSA0NzcuMDMsNDUuMDUgNDc3LjAzLDQ0LjM4IDQ3Ny4wMyw0NC4wOSA0NzcuMDMsNDMuNzcgNDc3LjAzLDQzLjY3IDQ3Ny4wMyw0My4xMiA0NzcuMDMsNDIuNzggNDc3LjAzLDQyLjU0IDQ3Ny4wMyw0Mi4zMiA0NzcuMDMsNDIuMzcgNDc3LjAzLDQyLjE1IDQ3Ny4wMyw0MS45MyA0NzcuMDMsNDEuNzcgNDc3LjAzLDQxLjYzIDQ3Ny4wMyw0MS42MCA0NzcuMDMsNDEuNDQgNDc3LjAzLDQxLjUxIDQ3Ny4wMyw0MS4yNCA0NzcuMDMsNDAuOTUgNDc3LjAzLDQwLjc3IDQ3Ny4wMyw0MC44MSA0NzcuMDMsNDAuNzkgNDc3LjAzLDQwLjY1IDQ3Ny4wMyw0MC40OSA0NzcuMDMsNDAuNDYgNDc3LjAzLDQwLjM4IDQ3Ny4wMyw0MC4zMiA0NzcuMDMsNDAuMjEgNDc3LjAzLDQwLjE2IDQ3Ny4wMyw0MC4wMyA0NzcuMDMsMzkuOTEgNDc3LjAzLDM5Ljc5IDQ3Ny4wMywzOS43MCA0NzcuMDMsMzkuNzEgNDc3LjAzLDM5LjUyIDQ3Ny4wMywzOS40MiA0NzcuMDMsMzkuNDAgNDc3LjAzLDM5LjMwIDQ3Ny4wMywzOS4yMyA0NzcuMDMsMzkuMDQgNDc3LjAzLDM5LjA0IDQ3Ny4wMywzOS4wMSA0NzcuMDMsMzguOTUgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAyLjEzOyBzdHJva2U6ICM2MTlDRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPC9nPgo8ZyBjbGlwLXBhdGg9J3VybCgjY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSknPgo8dGV4dCB4PSczMC43NCcgeT0nMjc3LjQ5JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc1LjMzcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+OTwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzIxMi44NicgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xMjwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzE0OC4yMicgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTAuNjZweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xNTwvdGV4dD4KPHRleHQgeD0nMzAuNzQnIHk9JzgzLjU5JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxMC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE4PC90ZXh0Pgo8dGV4dCB4PSc1NS40OCcgeT0nMjk2LjcxJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxOC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjAuOTI8L3RleHQ+Cjx0ZXh0IHg9JzE2MC44NycgeT0nMjk2LjcxJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxOC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjAuOTQ8L3RleHQ+Cjx0ZXh0IHg9JzI2Ni4yNScgeT0nMjk2LjcxJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxOC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjAuOTY8L3RleHQ+Cjx0ZXh0IHg9JzM3MS42NCcgeT0nMjk2LjcxJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxOC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjAuOTg8L3RleHQ+Cjx0ZXh0IHg9JzQ3Ny4wMycgeT0nMjk2LjcxJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxOC42NnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjEuMDA8L3RleHQ+Cjx0ZXh0IHg9JzI2Ny4wNycgeT0nMzEwLjMxJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiAxMi4wMHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzkzLjM4cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+U2FtcGxlIGNvdmVyYWdlPC90ZXh0Pgo8dGV4dCB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgxNC41NywxNTQuODcpIHJvdGF0ZSgtOTApJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiAxMi4wMHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzYwLjcwcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+SGlsbCBudW1iZXI8L3RleHQ+Cjx0ZXh0IHg9JzE3NS40NycgeT0nMzQzLjcwJyBzdHlsZT0nZm9udC1zaXplOiAxMi4wMHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzMwLjY3cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+T3JkZXI8L3RleHQ+CjxyZWN0IHg9JzIxMi44OScgeT0nMzMxLjU0JyB3aWR0aD0nMTUuNzMnIGhlaWdodD0nMTUuNzMnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMTY7IHN0cm9rZTogbm9uZTsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7IGZpbGw6ICNGODc2NkQ7IGZpbGwtb3BhY2l0eTogMC4yMDsnIC8+CjxsaW5lIHgxPScyMTMuODUnIHkxPSczMzkuNDAnIHgyPScyMjcuNjcnIHkyPSczMzkuNDAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDIuMTM7IHN0cm9rZTogI0Y4NzY2RDsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cmVjdCB4PScyNjMuNzQnIHk9JzMzMS41NCcgd2lkdGg9JzE1LjczJyBoZWlnaHQ9JzE1LjczJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjE2OyBzdHJva2U6IG5vbmU7IHN0cm9rZS1saW5lY2FwOiBidXR0OyBmaWxsOiAjMDBCQTM4OyBmaWxsLW9wYWNpdHk6IDAuMjA7JyAvPgo8bGluZSB4MT0nMjY0LjY5JyB5MT0nMzM5LjQwJyB4Mj0nMjc4LjUxJyB5Mj0nMzM5LjQwJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAyLjEzOyBzdHJva2U6ICMwMEJBMzg7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHJlY3QgeD0nMzE0LjU4JyB5PSczMzEuNTQnIHdpZHRoPScxNS43MycgaGVpZ2h0PScxNS43Mycgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4xNjsgc3Ryb2tlOiBub25lOyBzdHJva2UtbGluZWNhcDogYnV0dDsgZmlsbDogIzYxOUNGRjsgZmlsbC1vcGFjaXR5OiAwLjIwOycgLz4KPGxpbmUgeDE9JzMxNS41MycgeTE9JzMzOS40MCcgeDI9JzMyOS4zNicgeTI9JzMzOS40MCcgc3R5bGU9J3N0cm9rZS13aWR0aDogMi4xMzsgc3Ryb2tlOiAjNjE5Q0ZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjx0ZXh0IHg9JzIzNS4zOCcgeT0nMzQyLjg0JyBzdHlsZT0nZm9udC1zaXplOiA5LjYwcHg7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMjEuNjFweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz5xID0gMDwvdGV4dD4KPHRleHQgeD0nMjg2LjIyJyB5PSczNDIuODQnIHN0eWxlPSdmb250LXNpemU6IDkuNjBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScyMS42MXB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPnEgPSAxPC90ZXh0Pgo8dGV4dCB4PSczMzcuMDYnIHk9JzM0Mi44NCcgc3R5bGU9J2ZvbnQtc2l6ZTogOS42MHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzIxLjYxcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+cSA9IDI8L3RleHQ+Cjx0ZXh0IHg9JzM2LjEyJyB5PScxNi4yOCcgc3R5bGU9J2ZvbnQtc2l6ZTogMTQuNDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScyMjMuOTVweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz5IaWxsIE51bWJlcnMgdnMuIFNhbXBsZSBDb3ZlcmFnZTwvdGV4dD4KPC9nPgo8L2c+Cjwvc3ZnPgo=" /><!-- --></p>
+<p>Reading diversity against coverage rather than against sites puts all
+three curves on a completeness axis. The vertical gap between the <span class="math inline">\(q = 0\)</span> and <span class="math inline">\(q =
+2\)</span> curves at a fixed coverage measures the unevenness of the
+community: a wide gap means a few dominant species and a long rare
+tail.</p>
+<p>Standardizing all three orders to a single coverage is what makes the
+comparison across <span class="math inline">\(q\)</span> fair. If each
+order were read at the end of its own accumulation, the orders would sit
+at slightly different completeness levels and the contrast between them
+would mix a real diversity difference with a residual effort difference.
+Fixing coverage first removes that confound, leaving the spacing between
+<span class="math inline">\({}^{0}D\)</span>, <span class="math inline">\({}^{1}D\)</span>, and <span class="math inline">\({}^{2}D\)</span> as a clean signal of evenness.
+The same machinery scales to comparing several communities: standardize
+every community to the same coverage, then read off the diversity
+profile for each, and the profiles are directly comparable because they
+share both the completeness and the set of orders.</p>
+</div>
+<div id="spatial-subsampling" class="section level2">
+<h2>Spatial subsampling</h2>
+<p>Spatial autocorrelation inflates apparent accumulation when nearby
+sites hold similar species. Two tools reduce it.
+<code>subsample()</code> returns site indices to keep under a grid,
+random, or thinning rule; the grid method overlays cells of a chosen
+size and retains one random site per cell, which spreads the retained
+sites out. <code>spatialRarefaction()</code> instead runs
+distance-weighted permutations and returns the spatially constrained
+expectation directly.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">7</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>keep <span class="ot">&lt;-</span> <span class="fu">subsample</span>(coords, <span class="at">method =</span> <span class="st">&quot;grid&quot;</span>, <span class="at">cell_size =</span> <span class="fl">0.2</span>, <span class="at">seed =</span> <span class="dv">7</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="fu">length</span>(keep)</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">#&gt; [1] 23</span></span></code></pre></div>
+<p>A grid at cell size 0.2 over the unit square thins 60 sites down to
+roughly the number of occupied cells. Comparing the accumulation curve
+on the thinned set against the full set shows how much of the original
+rise came from spatially redundant neighbours.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>full  <span class="ot">&lt;-</span> <span class="fu">spacc</span>(species, coords, <span class="at">n_seeds =</span> <span class="dv">30</span>, <span class="at">progress =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>thin  <span class="ot">&lt;-</span> <span class="fu">spacc</span>(species[keep, ], coords[keep, ], <span class="at">n_seeds =</span> <span class="dv">30</span>, <span class="at">progress =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>df_full <span class="ot">&lt;-</span> <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(full), <span class="at">set =</span> <span class="st">&quot;Full&quot;</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>df_thin <span class="ot">&lt;-</span> <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(thin), <span class="at">set =</span> <span class="st">&quot;Thinned (grid)&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(<span class="fu">rbind</span>(df_full, df_thin),</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>                ggplot2<span class="sc">::</span><span class="fu">aes</span>(sites, mean, <span class="at">color =</span> set)) <span class="sc">+</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Sites&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">color =</span> <span class="cn">NULL</span>) <span class="sc">+</span> transparent</span></code></pre></div>
+<p><img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnID8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB4bWxuczp4bGluaz0naHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluaycgd2lkdGg9JzUwNC4wMHB0JyBoZWlnaHQ9JzM2MC4wMHB0JyB2aWV3Qm94PScwIDAgNTA0LjAwIDM2MC4wMCc+CjxnIGNsYXNzPSdzdmdsaXRlJz4KPGRlZnM+CiAgPHN0eWxlIHR5cGU9J3RleHQvY3NzJz48IVtDREFUQVsKICAgIC5zdmdsaXRlIGxpbmUsIC5zdmdsaXRlIHBvbHlsaW5lLCAuc3ZnbGl0ZSBwb2x5Z29uLCAuc3ZnbGl0ZSBwYXRoLCAuc3ZnbGl0ZSByZWN0LCAuc3ZnbGl0ZSBjaXJjbGUgewogICAgICBmaWxsOiBub25lOwogICAgICBzdHJva2U6ICMwMDAwMDA7CiAgICAgIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICAgICAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKICAgICAgc3Ryb2tlLW1pdGVybGltaXQ6IDEwLjAwOwogICAgfQogICAgLnN2Z2xpdGUgdGV4dCB7CiAgICAgIHdoaXRlLXNwYWNlOiBwcmU7CiAgICB9CiAgICAuc3ZnbGl0ZSBnLmdseXBoZ3JvdXAgcGF0aCB7CiAgICAgIGZpbGw6IGluaGVyaXQ7CiAgICAgIHN0cm9rZTogbm9uZTsKICAgIH0KICBdXT48L3N0eWxlPgo8L2RlZnM+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIHN0eWxlPSdzdHJva2U6IG5vbmU7IGZpbGw6ICNGRkZGRkY7Jy8+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BNQzR3TUh3MU1EUXVNREI4TUM0d01Id3pOakF1TURBPSc+CiAgICA8cmVjdCB4PScwLjAwJyB5PScwLjAwJyB3aWR0aD0nNTA0LjAwJyBoZWlnaHQ9JzM2MC4wMCcgLz4KICA8L2NsaXBQYXRoPgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0ndXJsKCNjcE1DNHdNSHcxTURRdU1EQjhNQzR3TUh3ek5qQXVNREE9KSc+CjxyZWN0IHg9JzAuMDAnIHk9JzAuMDAnIHdpZHRoPSc1MDQuMDAnIGhlaWdodD0nMzYwLjAwJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6IG5vbmU7JyAvPgo8L2c+CjxkZWZzPgogIDxjbGlwUGF0aCBpZD0nY3BOREF1TkRaOE16azVMakV5ZkRVdU5EaDhNekk0TGpVdyc+CiAgICA8cmVjdCB4PSc0MC40NicgeT0nNS40OCcgd2lkdGg9JzM1OC42NycgaGVpZ2h0PSczMjMuMDInIC8+CiAgPC9jbGlwUGF0aD4KPC9kZWZzPgo8ZyBjbGlwLXBhdGg9J3VybCgjY3BOREF1TkRaOE16azVMakV5ZkRVdU5EaDhNekk0TGpVdyknPgo8cmVjdCB4PSc0MC40NicgeT0nNS40OCcgd2lkdGg9JzM1OC42NycgaGVpZ2h0PSczMjMuMDInIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogbm9uZTsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzQwLjQ2LDI3Mi45MCAzOTkuMTIsMjcyLjkwICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC41Mzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzQwLjQ2LDIwMC42OSAzOTkuMTIsMjAwLjY5ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC41Mzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzQwLjQ2LDEyOC40OCAzOTkuMTIsMTI4LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC41Mzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzQwLjQ2LDU2LjI3IDM5OS4xMiw1Ni4yNyAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuNTM7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPScxMDYuNTAsMzI4LjUwIDEwNi41MCw1LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMC41Mzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzIxNy4wMywzMjguNTAgMjE3LjAzLDUuNDggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAwLjUzOyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzI3LjU2LDMyOC41MCAzMjcuNTYsNS40OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDAuNTM7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0MC40NiwzMDkuMDEgMzk5LjEyLDMwOS4wMSAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0MC40NiwyMzYuODAgMzk5LjEyLDIzNi44MCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0MC40NiwxNjQuNTggMzk5LjEyLDE2NC41OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc0MC40Niw5Mi4zNyAzOTkuMTIsOTIuMzcgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNDAuNDYsMjAuMTYgMzk5LjEyLDIwLjE2ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzUxLjIzLDMyOC41MCA1MS4yMyw1LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzE2MS43NiwzMjguNTAgMTYxLjc2LDUuNDggJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICNGRkZGRkY7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMjcyLjI5LDMyOC41MCAyNzIuMjksNS40OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogI0ZGRkZGRjsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczODIuODIsMzI4LjUwIDM4Mi44Miw1LjQ4ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjRkZGRkZGOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzU2Ljc2LDMxMy44MiA2Mi4yOCw3My4xMiA2Ny44MSwyOS43OSA3My4zNCwyMC4xNiA3OC44NiwyMC4xNiA4NC4zOSwyMC4xNiA4OS45MiwyMC4xNiA5NS40NCwyMC4xNiAxMDAuOTcsMjAuMTYgMTA2LjUwLDIwLjE2IDExMi4wMiwyMC4xNiAxMTcuNTUsMjAuMTYgMTIzLjA4LDIwLjE2IDEyOC42MCwyMC4xNiAxMzQuMTMsMjAuMTYgMTM5LjY2LDIwLjE2IDE0NS4xOCwyMC4xNiAxNTAuNzEsMjAuMTYgMTU2LjI0LDIwLjE2IDE2MS43NiwyMC4xNiAxNjcuMjksMjAuMTYgMTcyLjgxLDIwLjE2IDE3OC4zNCwyMC4xNiAxODMuODcsMjAuMTYgMTg5LjM5LDIwLjE2IDE5NC45MiwyMC4xNiAyMDAuNDUsMjAuMTYgMjA1Ljk3LDIwLjE2IDIxMS41MCwyMC4xNiAyMTcuMDMsMjAuMTYgMjIyLjU1LDIwLjE2IDIyOC4wOCwyMC4xNiAyMzMuNjEsMjAuMTYgMjM5LjEzLDIwLjE2IDI0NC42NiwyMC4xNiAyNTAuMTksMjAuMTYgMjU1LjcxLDIwLjE2IDI2MS4yNCwyMC4xNiAyNjYuNzcsMjAuMTYgMjcyLjI5LDIwLjE2IDI3Ny44MiwyMC4xNiAyODMuMzQsMjAuMTYgMjg4Ljg3LDIwLjE2IDI5NC40MCwyMC4xNiAyOTkuOTIsMjAuMTYgMzA1LjQ1LDIwLjE2IDMxMC45OCwyMC4xNiAzMTYuNTAsMjAuMTYgMzIyLjAzLDIwLjE2IDMyNy41NiwyMC4xNiAzMzMuMDgsMjAuMTYgMzM4LjYxLDIwLjE2IDM0NC4xNCwyMC4xNiAzNDkuNjYsMjAuMTYgMzU1LjE5LDIwLjE2IDM2MC43MiwyMC4xNiAzNjYuMjQsMjAuMTYgMzcxLjc3LDIwLjE2IDM3Ny4yOSwyMC4xNiAzODIuODIsMjAuMTYgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAyLjEzOyBzdHJva2U6ICNGODc2NkQ7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nNTYuNzYsMjg0Ljk0IDYyLjI4LDczLjEyIDY3LjgxLDI5Ljc5IDczLjM0LDIwLjE2IDc4Ljg2LDIwLjE2IDg0LjM5LDIwLjE2IDg5LjkyLDIwLjE2IDk1LjQ0LDIwLjE2IDEwMC45NywyMC4xNiAxMDYuNTAsMjAuMTYgMTEyLjAyLDIwLjE2IDExNy41NSwyMC4xNiAxMjMuMDgsMjAuMTYgMTI4LjYwLDIwLjE2IDEzNC4xMywyMC4xNiAxMzkuNjYsMjAuMTYgMTQ1LjE4LDIwLjE2IDE1MC43MSwyMC4xNiAxNTYuMjQsMjAuMTYgMTYxLjc2LDIwLjE2IDE2Ny4yOSwyMC4xNiAxNzIuODEsMjAuMTYgMTc4LjM0LDIwLjE2ICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMi4xMzsgc3Ryb2tlOiAjMDBCRkM0OyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+CjwvZz4KPGcgY2xpcC1wYXRoPSd1cmwoI2NwTUM0d01IdzFNRFF1TURCOE1DNHdNSHd6TmpBdU1EQT0pJz4KPHRleHQgeD0nMzUuNTInIHk9JzMxMi4xNicgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTcuMTFweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4xOC4wPC90ZXh0Pgo8dGV4dCB4PSczNS41MicgeT0nMjM5Ljk1JyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA4LjgwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxNy4xMXB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE4LjU8L3RleHQ+Cjx0ZXh0IHg9JzM1LjUyJyB5PScxNjcuNzMnIHRleHQtYW5jaG9yPSdlbmQnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzE3LjExcHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+MTkuMDwvdGV4dD4KPHRleHQgeD0nMzUuNTInIHk9Jzk1LjUyJyB0ZXh0LWFuY2hvcj0nZW5kJyBzdHlsZT0nZm9udC1zaXplOiA4LjgwcHg7ZmlsbDogIzRENEQ0RDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScxNy4xMXB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjE5LjU8L3RleHQ+Cjx0ZXh0IHg9JzM1LjUyJyB5PScyMy4zMScgdGV4dC1hbmNob3I9J2VuZCcgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nMTcuMTFweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4yMC4wPC90ZXh0Pgo8cG9seWxpbmUgcG9pbnRzPSczNy43MiwzMDkuMDEgNDAuNDYsMzA5LjAxICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjMzMzMzMzOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzM3LjcyLDIzNi44MCA0MC40NiwyMzYuODAgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICMzMzMzMzM7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzcuNzIsMTY0LjU4IDQwLjQ2LDE2NC41OCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczNy43Miw5Mi4zNyA0MC40Niw5Mi4zNyAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSczNy43MiwyMC4xNiA0MC40NiwyMC4xNiAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPSc1MS4yMywzMzEuMjQgNTEuMjMsMzI4LjUwICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjMzMzMzMzOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjxwb2x5bGluZSBwb2ludHM9JzE2MS43NiwzMzEuMjQgMTYxLjc2LDMyOC41MCAnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogIzMzMzMzMzsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8cG9seWxpbmUgcG9pbnRzPScyNzIuMjksMzMxLjI0IDI3Mi4yOSwzMjguNTAgJyBzdHlsZT0nc3Ryb2tlLXdpZHRoOiAxLjA3OyBzdHJva2U6ICMzMzMzMzM7IHN0cm9rZS1saW5lY2FwOiBidXR0OycgLz4KPHBvbHlsaW5lIHBvaW50cz0nMzgyLjgyLDMzMS4yNCAzODIuODIsMzI4LjUwICcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiAjMzMzMzMzOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+Cjx0ZXh0IHg9JzUxLjIzJyB5PSczMzkuNzQnIHRleHQtYW5jaG9yPSdtaWRkbGUnIHN0eWxlPSdmb250LXNpemU6IDguODBweDtmaWxsOiAjNEQ0RDREOyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzQuODlweCcgbGVuZ3RoQWRqdXN0PSdzcGFjaW5nQW5kR2x5cGhzJz4wPC90ZXh0Pgo8dGV4dCB4PScxNjEuNzYnIHk9JzMzOS43NCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nOS43OHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjIwPC90ZXh0Pgo8dGV4dCB4PScyNzIuMjknIHk9JzMzOS43NCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nOS43OHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjQwPC90ZXh0Pgo8dGV4dCB4PSczODIuODInIHk9JzMzOS43NCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4O2ZpbGw6ICM0RDRENEQ7IGZvbnQtZmFtaWx5OiAiQXJpYWwiOycgdGV4dExlbmd0aD0nOS43OHB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPjYwPC90ZXh0Pgo8dGV4dCB4PScyMTkuNzknIHk9JzM1Mi4yMCcgdGV4dC1hbmNob3I9J21pZGRsZScgc3R5bGU9J2ZvbnQtc2l6ZTogMTEuMDBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPScyNC40N3B4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPlNpdGVzPC90ZXh0Pgo8dGV4dCB0cmFuc2Zvcm09J3RyYW5zbGF0ZSgxMy4zNiwxNjYuOTkpIHJvdGF0ZSgtOTApJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBzdHlsZT0nZm9udC1zaXplOiAxMS4wMHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzM5LjE2cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+U3BlY2llczwvdGV4dD4KPHJlY3QgeD0nNDEwLjA4JyB5PScxNDQuMjMnIHdpZHRoPSc4OC40NCcgaGVpZ2h0PSc0NS41Micgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiBub25lOyBmaWxsOiAjRkZGRkZGOycgLz4KPHJlY3QgeD0nNDE1LjU2JyB5PScxNDkuNzEnIHdpZHRoPScxNy4yOCcgaGVpZ2h0PScxNy4yOCcgc3R5bGU9J3N0cm9rZS13aWR0aDogMS4wNzsgc3Ryb2tlOiBub25lOycgLz4KPGxpbmUgeDE9JzQxNy4yOScgeTE9JzE1OC4zNScgeDI9JzQzMS4xMScgeTI9JzE1OC4zNScgc3R5bGU9J3N0cm9rZS13aWR0aDogMi4xMzsgc3Ryb2tlOiAjRjg3NjZEOyBzdHJva2UtbGluZWNhcDogYnV0dDsnIC8+CjxyZWN0IHg9JzQxNS41NicgeT0nMTY2Ljk5JyB3aWR0aD0nMTcuMjgnIGhlaWdodD0nMTcuMjgnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDEuMDc7IHN0cm9rZTogbm9uZTsnIC8+CjxsaW5lIHgxPSc0MTcuMjknIHkxPScxNzUuNjMnIHgyPSc0MzEuMTEnIHkyPScxNzUuNjMnIHN0eWxlPSdzdHJva2Utd2lkdGg6IDIuMTM7IHN0cm9rZTogIzAwQkZDNDsgc3Ryb2tlLWxpbmVjYXA6IGJ1dHQ7JyAvPgo8dGV4dCB4PSc0MzguMzInIHk9JzE2MS41MCcgc3R5bGU9J2ZvbnQtc2l6ZTogOC44MHB4OyBmb250LWZhbWlseTogIkFyaWFsIjsnIHRleHRMZW5ndGg9JzE0LjE3cHgnIGxlbmd0aEFkanVzdD0nc3BhY2luZ0FuZEdseXBocyc+RnVsbDwvdGV4dD4KPHRleHQgeD0nNDM4LjMyJyB5PScxNzguNzgnIHN0eWxlPSdmb250LXNpemU6IDguODBweDsgZm9udC1mYW1pbHk6ICJBcmlhbCI7JyB0ZXh0TGVuZ3RoPSc1NC43MnB4JyBsZW5ndGhBZGp1c3Q9J3NwYWNpbmdBbmRHbHlwaHMnPlRoaW5uZWQgKGdyaWQpPC90ZXh0Pgo8L2c+CjwvZz4KPC9zdmc+Cg==" /><!-- --></p>
+<p>The thinned curve reaches a similar asymptote with fewer sites, since
+the discarded sites were spatial near-duplicates that added little new
+information. <code>spatialRarefaction()</code> gives the same correction
+analytically, returning a data frame with <code>sites</code>,
+<code>mean</code>, <code>sd</code>, and quantile bounds from
+distance-weighted draws.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>sr <span class="ot">&lt;-</span> <span class="fu">spatialRarefaction</span>(species, coords, <span class="at">n_perm =</span> <span class="dv">50</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="fu">tail</span>(sr[, <span class="fu">c</span>(<span class="st">&quot;sites&quot;</span>, <span class="st">&quot;mean&quot;</span>, <span class="st">&quot;lower&quot;</span>, <span class="st">&quot;upper&quot;</span>)], <span class="dv">2</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="co">#&gt;    sites mean lower upper</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a><span class="co">#&gt; 59    59   20    20    20</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="co">#&gt; 60    60   20    20    20</span></span></code></pre></div>
+</div>
+<div id="comparison-on-the-same-data" class="section level2">
+<h2>Comparison on the same data</h2>
+<p>The three standardizations can disagree about which sites are more
+diverse, because they hold different quantities constant. The clearest
+demonstration uses the effort tiers from the simulation. The low-effort
+and high-effort tiers share the same 20-species community but differ
+fivefold in individuals per site. Raw richness, richness at matched
+individuals, and richness at matched coverage tell three different
+stories.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>lo <span class="ot">&lt;-</span> species[lambdas <span class="sc">==</span> <span class="dv">1</span>, ]</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>hi <span class="ot">&lt;-</span> species[lambdas <span class="sc">==</span> <span class="dv">5</span>, ]</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>raw <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">low =</span> <span class="fu">sum</span>(<span class="fu">colSums</span>(lo) <span class="sc">&gt;</span> <span class="dv">0</span>), <span class="at">high =</span> <span class="fu">sum</span>(<span class="fu">colSums</span>(hi) <span class="sc">&gt;</span> <span class="dv">0</span>))</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>raw</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="co">#&gt;  low high </span></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="co">#&gt;   20   20</span></span></code></pre></div>
+<p>Matched effort uses individual-based rarefaction at a common
+subsample size set by the smaller pool. Each tier is rarefied to the
+same number of individuals, so the comparison no longer rewards the
+deeper-sampled tier.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>n_match <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="fu">sum</span>(lo), <span class="fu">sum</span>(hi))</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>S_lo <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(lo, <span class="at">n_individuals =</span> n_match)<span class="sc">$</span>expected</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>S_hi <span class="ot">&lt;-</span> <span class="fu">rarefy</span>(hi, <span class="at">n_individuals =</span> n_match)<span class="sc">$</span>expected</span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="fu">c</span>(<span class="at">low =</span> <span class="fu">round</span>(S_lo, <span class="dv">1</span>), <span class="at">high =</span> <span class="fu">round</span>(S_hi, <span class="dv">1</span>), <span class="at">n =</span> n_match)</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co">#&gt;  low high    n </span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co">#&gt;   20   20  369</span></span></code></pre></div>
+<p>Matched coverage uses coverage-based standardization at a common
+completeness. The two tiers are interpolated to the same coverage so the
+comparison rewards equal proportional representation rather than equal
+individuals.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>co_lo <span class="ot">&lt;-</span> <span class="fu">spaccCoverage</span>(lo, coords[lambdas <span class="sc">==</span> <span class="dv">1</span>, ], <span class="at">n_seeds =</span> <span class="dv">20</span>, <span class="at">progress =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>co_hi <span class="ot">&lt;-</span> <span class="fu">spaccCoverage</span>(hi, coords[lambdas <span class="sc">==</span> <span class="dv">5</span>, ], <span class="at">n_seeds =</span> <span class="dv">20</span>, <span class="at">progress =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>S_lo_c <span class="ot">&lt;-</span> <span class="fu">mean</span>(<span class="fu">interpolateCoverage</span>(co_lo, <span class="at">target =</span> <span class="fl">0.9</span>)[, <span class="dv">1</span>])</span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>S_hi_c <span class="ot">&lt;-</span> <span class="fu">mean</span>(<span class="fu">interpolateCoverage</span>(co_hi, <span class="at">target =</span> <span class="fl">0.9</span>)[, <span class="dv">1</span>])</span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="fu">c</span>(<span class="at">low =</span> <span class="fu">round</span>(S_lo_c, <span class="dv">1</span>), <span class="at">high =</span> <span class="fu">round</span>(S_hi_c, <span class="dv">1</span>))</span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a><span class="co">#&gt;  low high </span></span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; 17.1 19.9</span></span></code></pre></div>
+<p>Collecting the three views into one table makes the shift in
+conclusion explicit. Raw counts favour the high-effort tier by the
+largest margin; matched effort and matched coverage shrink or reverse
+that margin, because both tiers draw from the same community and the
+difference was an artefact of sampling depth.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>  <span class="at">standardization =</span> <span class="fu">c</span>(<span class="st">&quot;Raw richness&quot;</span>, <span class="st">&quot;Matched individuals&quot;</span>, <span class="st">&quot;Matched coverage (0.90)&quot;</span>),</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="at">low  =</span> <span class="fu">c</span>(raw[<span class="st">&quot;low&quot;</span>],  <span class="fu">round</span>(S_lo, <span class="dv">1</span>), <span class="fu">round</span>(S_lo_c, <span class="dv">1</span>)),</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>  <span class="at">high =</span> <span class="fu">c</span>(raw[<span class="st">&quot;high&quot;</span>], <span class="fu">round</span>(S_hi, <span class="dv">1</span>), <span class="fu">round</span>(S_hi_c, <span class="dv">1</span>)),</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">NULL</span></span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>)</span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="co">#&gt;           standardization  low high</span></span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a><span class="co">#&gt; 1            Raw richness 20.0 20.0</span></span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="co">#&gt; 2     Matched individuals 20.0 20.0</span></span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a><span class="co">#&gt; 3 Matched coverage (0.90) 17.1 19.9</span></span></code></pre></div>
+<p>The lesson is that a richness comparison is only as meaningful as the
+quantity held constant. Reporting raw richness across uneven samples
+measures effort; reporting it at matched effort or matched coverage
+measures the community. When the standardized margins are small, the
+apparent difference in the raw data was sampling, not biology.</p>
+<p>The three rows answer three different questions about the same two
+tiers. The raw row asks how many species were recorded, which is a
+statement about the survey, not the community. The matched-individuals
+row asks how many species each tier would show if both had been sampled
+to the same depth, which removes the fivefold difference in effort and
+brings the two tiers close together. The matched-coverage row asks how
+many species each tier holds at equal completeness, which can favour the
+low-effort tier if its smaller sample happened to be more even. Since
+both tiers were generated from the same 20-species pool, the correct
+answer is that they are equally diverse, and the standardized rows
+recover that far better than the raw row. In field data the truth is
+unknown, so the discipline is to report the standardized comparison and
+to state which quantity was held constant, rather than letting the
+reader assume raw counts are comparable.</p>
+<p>A short note on which standardization to trust when they disagree.
+Matched individuals and matched coverage will not always agree, and the
+difference is informative rather than a contradiction. When they
+diverge, the tiers differ in evenness as well as in effort: equalizing
+individuals leaves the more even community at higher coverage, while
+equalizing coverage gives it fewer individuals. Coverage is usually the
+more defensible target for comparing communities that differ in
+evenness, because equal completeness is closer to the ecological
+question of how much of each community has been seen. Matched
+individuals remains the right target when the comparison is explicitly
+about a fixed sampling budget rather than about completeness.</p>
+</div>
+<div id="practical-guidance" class="section level2">
+<h2>Practical guidance</h2>
+<p>Standardization choices come down to what varies across the samples
+being compared and whether the data carry the abundance information
+coverage needs.</p>
+<p><strong>Rules of thumb.</strong></p>
+<ul>
+<li>Target coverage of 0.90 to 0.95 for most comparisons. Below 0.85 the
+rare tail is too poorly sampled for the coverage estimate to be stable;
+at 0.99 the curves are near their asymptote and the comparison adds
+little over a richness estimator.</li>
+<li>Keep at least 30 to 50 individuals per site before trusting an
+individual-based rarefaction; below that the curve is dominated by the
+first few draws and the bootstrap interval is wide.</li>
+<li>Limit extrapolation to roughly 2 to 3 times the observed sample
+size, or to coverage no more than a few points past the observed
+maximum. Beyond that the Chao asymptotics extrapolate the rare tail well
+past the data.</li>
+<li>Use at least 20 to 30 seeds in <code>spaccCoverage()</code> and
+<code>spaccHillCoverage()</code> so the across-seed standard deviation
+is a usable uncertainty estimate rather than noise from too few starting
+points.</li>
+<li>Down-weight the rare tail with <span class="math inline">\(q =
+1\)</span> or <span class="math inline">\(q = 2\)</span> when singletons
+are suspected to be identification errors; richness (<span class="math inline">\(q = 0\)</span>) is the order most sensitive to
+that noise.</li>
+</ul>
+<p><strong>Minimum sample size.</strong> Individual-based rarefaction
+needs enough individuals that the curve has begun to flatten; 30 to 50
+per site is a working floor, and comparisons should rarefy down to the
+smallest pool, not up. Coverage-based methods need enough singletons and
+doubletons to estimate <span class="math inline">\(f_1\)</span> and
+<span class="math inline">\(f_2\)</span>; a sample with fewer than about
+10 species or no doubletons gives an unstable coverage estimate.
+Sample-based curves (<code>mao_tau</code>, <code>coleman</code>) need at
+least 10 to 15 sites before the expectation and its variance are
+meaningful.</p>
+<p><strong>Decision table.</strong></p>
+<table>
+<colgroup>
+<col width="30%" />
+<col width="55%" />
+<col width="13%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Recommended method</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sites differ in number of individuals, abundances available</td>
+<td>Coverage-based (<code>spaccCoverage</code>,
+<code>interpolateCoverage</code>)</td>
+<td>Compares at equal completeness</td>
+</tr>
+<tr class="even">
+<td>Effort varies but only counts of individuals matter</td>
+<td>Individual-based (<code>rarefy</code>)</td>
+<td>Hurlbert expectation at matched <span class="math inline">\(n\)</span></td>
+</tr>
+<tr class="odd">
+<td>Effort varies through plot count, presence/absence only</td>
+<td>Sample-based (<code>mao_tau</code>, <code>coleman</code>)</td>
+<td>Standardizes on number of sites</td>
+</tr>
+<tr class="even">
+<td>Need several diversity orders at once</td>
+<td><code>spaccHillCoverage</code></td>
+<td>Tracks <span class="math inline">\(q = 0, 1, 2\)</span> and coverage
+together</td>
+</tr>
+<tr class="odd">
+<td>Nearby sites are spatially redundant</td>
+<td><code>subsample(method = &quot;grid&quot;)</code>,
+<code>spatialRarefaction</code></td>
+<td>Reduces autocorrelation inflation</td>
+</tr>
+<tr class="even">
+<td>Want richness past observed completeness</td>
+<td><code>extrapolateCoverage</code></td>
+<td>Chao asymptotic projection</td>
+</tr>
+</tbody>
+</table>
+<p><strong>When not to use coverage-based methods.</strong> Coverage is
+defined through <span class="math inline">\(f_1\)</span>, <span class="math inline">\(f_2\)</span>, and <span class="math inline">\(N\)</span>, so it requires genuine abundance
+counts. Presence/absence data have no singletons or doubletons in the
+abundance sense, and the Chao-Jost estimator cannot be formed;
+sample-based rarefaction on sites is the correct tool there. Coverage is
+also unreliable when the sample is tiny or has no doubletons, since the
+denominator <span class="math inline">\((N-1) f_1 + 2 f_2\)</span> then
+rests on a single frequency class. And when sampling effort is already
+equal across sites, standardization is unnecessary; raw richness is
+directly comparable and adding a rarefaction step only discards
+information.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<ul>
+<li>Chao, A. &amp; Jost, L. (2012). Coverage-based rarefaction and
+extrapolation: standardizing samples by completeness rather than size.
+<em>Ecology</em>, 93, 2533-2547.</li>
+<li>Chao, A., Gotelli, N.J., Hsieh, T.C., Sander, E.L., Ma, K.H.,
+Colwell, R.K. &amp; Ellison, A.M. (2014). Rarefaction and extrapolation
+with Hill numbers. <em>Ecological Monographs</em>, 84, 45-67.</li>
+<li>Coleman, B.D., Mares, M.A., Willig, M.R. &amp; Hsieh, Y.H. (1982).
+Randomness, area, and species richness. <em>Ecology</em>, 63,
+1121-1133.</li>
+<li>Colwell, R.K., Mao, C.X. &amp; Chang, J. (2004). Interpolating,
+extrapolating, and comparing incidence-based species accumulation
+curves. <em>Ecology</em>, 85, 2717-2727.</li>
+<li>Hurlbert, S.H. (1971). The nonconcept of species diversity: a
+critique and alternative parameters. <em>Ecology</em>, 52, 577-586.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
