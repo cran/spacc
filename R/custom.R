@@ -15,7 +15,7 @@
 #'   passed through `...`, and must return a single numeric value.
 #' @param ... Additional arguments passed to `fun`.
 #' @param method Character. Spatial ordering of sites: `"knn"` (default),
-#'   `"kncn"`, `"random"`, `"radius"`, or `"collector"`.
+#'   `"kncn"`, `"nn_walk"`, `"random"`, or `"collector"`.
 #' @param incidence Logical. If `TRUE`, `fun` receives 0/1 incidences instead
 #'   of summed abundances. Default `FALSE`.
 #' @param n_seeds Integer. Number of random starting points / orderings.
@@ -23,6 +23,9 @@
 #' @param distance Character. `"euclidean"` or `"haversine"`.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed for reproducibility.
+#' @param focal_points Optional focal points passed to the canonical `knn`
+#'   ordering. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain passed to [spacc()].
 #'
 #' @return An object of class `spacc_diversity` that inherits from `spacc`, so
 #'   the standard `summary()`, `plot()`, `as.data.frame()` and `predict()`
@@ -31,7 +34,7 @@
 #'
 #' @details
 #' The site ordering reuses the same spatial traversals as the built-in
-#' methods (nearest-neighbour, nearest-centroid, random, distance-rank, or
+#' methods (fixed-focus, nearest-neighbour walk, nearest-centroid, random, or
 #' data order), then evaluates `fun` on the accumulating community. Because the
 #' index is an arbitrary R function, this trades the speed of the compiled
 #' metrics for full flexibility.
@@ -54,12 +57,14 @@
 #'
 #' @export
 spaccDiversity <- function(x, coords, fun, ...,
-                           method = c("knn", "kncn", "random", "radius", "collector"),
+                           method = c("knn", "kncn", "nn_walk", "random", "collector"),
                            incidence = FALSE,
                            n_seeds = 50L,
                            distance = c("euclidean", "haversine"),
                            progress = TRUE,
-                           seed = NULL) {
+                           seed = NULL,
+                           focal_points = NULL,
+                           focal_domain = NULL) {
 
   method <- match.arg(method)
   distance <- match.arg(distance)
@@ -68,15 +73,8 @@ spaccDiversity <- function(x, coords, fun, ...,
   if (!is.null(seed)) set.seed(seed)
 
   x <- as.matrix(x)
-
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    dist_mat <- NULL
-  }
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
 
   stopifnot(
     "x and coords must have same number of rows" = nrow(x) == nrow(coord_data),
@@ -90,22 +88,9 @@ spaccDiversity <- function(x, coords, fun, ...,
   comm_mat <- if (incidence) (x > 0) * 1 else x
   storage.mode(comm_mat) <- "double"
 
-  if (method %in% c("knn", "radius") && is.null(dist_mat)) {
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
-  # Build accumulation orders (1-based), one row per ordering
-  if (method == "collector") {
-    orders <- matrix(seq_len(n_sites), nrow = 1L)
-  } else {
-    seeds0 <- as.integer(sample(n_sites, n_seeds, replace = TRUE) - 1L)
-    orders <- switch(method,
-      knn    = cpp_knn_order(dist_mat, seeds0) + 1L,
-      kncn   = cpp_kncn_order(coord_data$x, coord_data$y, seeds0) + 1L,
-      random = t(vapply(seq_len(n_seeds), function(i) sample.int(n_sites), integer(n_sites))),
-      radius = t(vapply(seeds0 + 1L, function(s) order(dist_mat[s, ]), integer(n_sites)))
-    )
-  }
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   site$dist_mat, focal_points, focal_domain)
+  orders <- ordering$orders
   n_curves <- nrow(orders)
 
   if (progress) cli_info(sprintf("Running custom diversity accumulation (%s, %d ordering%s)",
@@ -130,12 +115,14 @@ spaccDiversity <- function(x, coords, fun, ...,
   structure(
     list(
       curves = curves,
+      orders = orders,
       coords = coord_data,
       n_seeds = n_curves,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
       distance = distance,
+      focal_points = ordering$focal_points,
       fun = fun,
       call = match.call()
     ),

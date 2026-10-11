@@ -1,3 +1,226 @@
+# spacc 0.11.0
+
+## New features
+
+- `spaccPhylo(metric = "evoheritage", rho = )` accumulates EvoHeritage
+  (Rosindell et al. 2024), phylogenetic diversity with attrition of
+  evolutionary heritage at rate `rho`. `rho = 0` reproduces Faith's PD; a
+  vector `rho` gives one curve per rate (#7).
+- `chao2(x, n_units = )` estimates richness for sites drawn without
+  replacement from a finite set of `n_units` units (MoRE, Chiu 2023), which
+  reaches the observed richness when every unit is sampled instead of
+  overestimating it. `extrapolate(n_units = )` compares the asymptote with
+  MoRE and uses it as the reference for the disagreement warning (#14).
+- `arc()` estimates total richness with the accumulation rate curve estimator
+  of Shestopaloff (2025): log-normal, log-logistic and Weibull fits to the rate
+  at which new species appear, combined with capped weights, with a parametric
+  bootstrap interval from a penalised Poisson mixture of the frequency counts.
+  `data = "incidence"` runs it on site occupancy. The weights are the minimum
+  of the paper's loss reached by gradient flow from zero weights, the one the
+  author's reference code reaches (#13).
+- `spaccCoverage(coverage = "chiu", n_units = )` gives the matching sample
+  coverage: the undetected abundance uses the MoRE estimate of the undetected
+  species, so the coverage reaches 1 when every unit is sampled (#14).
+- `spaccHillBeta(standardize = "coverage", coverage = )` standardises gamma
+  and alpha to a common sample coverage at every step (iNEXT.beta3D, Chao et
+  al. 2023) and returns the four dissimilarities `1-CqN`, `1-UqN`, `1-VqN`,
+  `1-SqN`. Final-step values match `iNEXT.beta3D::iNEXTbeta3D()` (#6).
+- `spaccFunc(metric = "K")` accumulates the aggregated functional diversity
+  K of Wojcik et al. (2024) with its four facets (`k_richness`,
+  `k_biomass_evenness`, `k_trait_evenness`, `k_dispersion`); K is defined
+  from two species on (#8).
+- `spaccRedundancy()` tracks phylogenetic or functional redundancy along the
+  accumulation: the ratio of the taxonomic Hill number to the phylogenetic
+  (Chao et al. 2010) or similarity-sensitive functional (Leinster & Cobbold
+  2012) Hill number of the accumulated community (#9).
+- `spaccBeta(pool = )` repeats the turnover/nestedness partition between
+  pooled assemblages (habitats, regions) along the same site orders, next to
+  the site-level partition (Jones et al. 2025); `summary()` and `plot()` take
+  `resolution = "site"`, `"pooled"` or (plot) `"both"` (#11).
+- `ses(null_model = "shift_rotate")` keeps the community and moves a fixed
+  sampling design (user-supplied `focal_points` of a `knn` analysis) by
+  random rotations and shifts (Ridder et al. 2024), testing the design's
+  position rather than the community's spatial structure (#12).
+- `as_spacc()` converts a numeric curve or a data frame column, including
+  the output of `Rarefy::directionalSAC()` and `Rarefy::rare_alpha()`.
+  `spacc(method = "knn", focal_points = coords)` is checked to reproduce
+  Rarefy's directional curve exactly (#16).
+- `spaccNetwork()` accumulates an interaction network over space:
+  interaction richness and Hill numbers, sample coverage, the species curves
+  of both levels and connectance along the same orders (Chiu et al. 2023)
+  (#15).
+- `spaccFunc(itv = TRUE)` takes traits per individual or population (a
+  long table with `species`, optional `site` and trait columns) and
+  evaluates FDis, FRic, Rao's Q and K on the trait rows of the accumulated
+  sites; one row per species reproduces the species-mean curves (#17).
+- `dar()` is an S3 generic: besides a site-by-species matrix it takes a
+  `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or `spacc_redundancy`
+  object and returns the diversity-area relationship of each of its curves,
+  along the same site orders, with a power-law fit per curve (`coef()`).
+  The area kernels are C++ (incremental convex hull, Voronoi cells), so
+  `dar()` no longer needs `sf`. The result carries `curves`, `metric` and
+  the curve `object` it was built from (formerly `hill`) (#10).
+- New C++ engine for size- and coverage-based rarefaction and extrapolation
+  of Hill numbers (`src/core/inext_core.h`), matching iNEXT.3D.
+
+## Bug fixes
+
+- `ses()` on `spacc_phylo` and `spacc_func` objects always stopped with "Too
+  few valid permutations": their null analyses were never rerun. The objects
+  now carry their tree, traits and metric settings, and `ses()` reruns them.
+- `ses()` reran `knn` analyses with newly drawn focal points; the nulls now
+  reuse the observed design, and `spacc_beta` nulls keep the distance method.
+- `extrapolate()` and `compareModels()` passed unknown arguments (such as
+  `progress = FALSE`) on to `nls()`, which treated them as data, so every
+  model "failed to converge". Unknown arguments are now an error. The
+  extrapolation vignette's model comparison had been all failures for this
+  reason.
+- `dar(area_method = "voronoi")` computed bounding-box areas; it now sums the
+  Voronoi cells of the accumulated sites. The convex-hull area of one or two
+  sites is 0 instead of their bounding box.
+- `diversityProfile(tree = )` scaled branch lengths by the maximum
+  root-to-tip depth. It now uses the abundance-weighted mean depth of Chao et
+  al. (2010), which is the same for an ultrametric tree and keeps the profile
+  equal to the taxonomic one on a star tree otherwise. Phylogenetic and
+  functional profiles run on the C++ kernels shared with `spaccRedundancy()`.
+- `rarefy()` with `q = 1` or `q = 2` returned the Hill number of the full
+  sample at every size (q = 1 plugged the sample proportions into Shannon,
+  q = 2 ignored the subsample size). It now returns the expected Hill number
+  of a random subsample at every order, matching iNEXT.3D, and extrapolates
+  sizes above the sample size.
+- `extrapolateCoverage()` with `q = 1` or `q = 2` interpolated the richness
+  curve within the observed coverage and applied ad hoc corrections beyond
+  it. It now reads the Hill curve of the requested order (a
+  `spaccHillCoverage()` object; a `spacc_coverage` object carries `q = 0`
+  only) and extrapolates the pooled sample with the Chao et al. (2014)
+  estimators, which also replace the reconstructed singleton counts used for
+  `q = 0`.
+- `spaccPhylo()` PD matched species to tree tips by column position, so it
+  was wrong when `colnames(x)` were not in `tree$tip.label` order and read past
+  the community when the tree held more tips than `x` had species. Species are
+  now matched to tips by name.
+
+## Internals
+
+- Every accumulation method is now an order generator (`src/orders.cpp`),
+  and one kernel accumulates species along those orders
+  (`src/accumulate.cpp`). The per-method serial/parallel/tree copies of the
+  traversal (`knn.cpp`, `kncn.cpp`, `random.cpp`, `methods.cpp`,
+  `metrics.cpp`) are gone; `spacc()`, `spaccMetrics()`, `spaccDiversity()`
+  and the metric front doors all take their site orders from
+  `.accumulation_orders()`.
+- The Hill, coverage, beta, phylogenetic and functional accumulations run on
+  one templated worker (`OrderMetricWorker` in `src/parallel_utils.h`); each
+  metric is a small struct with an `at_step()` method. The pure kernels live
+  in `src/core/` (`phylo_core.h` and `func_core.h` are new) and are the single
+  implementation behind both the exported single-community functions
+  (`calc_mpd()`, `calc_fdis()`, ...) and the accumulation workers.
+- Faith's PD precomputes the parent of every tree node once per call instead
+  of scanning the edge list at every step.
+- The S3 methods of the curve classes share `.curve_stats()`,
+  `.curve_frame()`, `.plot_curves_by()`, `.plot_site_map()` and
+  `.as_sf_site_values()`; the `autoplot()` methods are one delegating
+  function registered per class.
+- `spacc` objects carry the site `orders` their curves were accumulated along.
+
+## Behaviour changes
+
+- `method = "gaussian"` draws from R's random number generator, so `seed`
+  (or `set.seed()`) now reproduces its curves. It previously used an
+  unseeded C++ generator.
+- `method = "kncn"` with `distance = "haversine"` measures centroid distances
+  with the haversine formula on both backends; the exact backend used planar
+  distances on longitude/latitude.
+- `.accumulation_orders()` computes a distance matrix only for the methods
+  that need one, so `spaccHill()`, `spaccPhylo()`, `spaccFunc()`,
+  `spaccCoverage()` and `spaccEndemism()` no longer build an `n x n` matrix
+  for the fixed-focus `knn` method.
+- `as_sf()` and `plot(type = "map")` on an object computed without
+  `map = TRUE` fail with one message for every class:
+  "No map data. Rerun <constructor>() with map = TRUE."
+
+# spacc 0.10.2
+
+## API Changes
+
+- `method = "knn"` now implements fixed-focus spatially constrained
+  rarefaction: continuous focal points are sampled from the spatial domain and
+  all sites are ranked by distance from each focus. Supply `focal_domain` for a
+  known polygonal study boundary or `focal_points` for exact focal coordinates.
+  The former greedy current-site traversal is now `method = "nn_walk"`.
+  `method = "radius"` was removed because its observed-site fixed-focus ordering
+  duplicated the corrected `knn` concept. `spaccWavefront()` remains the
+  radius-indexed accumulation front door.
+
+- Diversity, coverage, beta, phylogenetic, functional, endemism, metric, and
+  diversity-area calculations now consume shared site-order matrices. This keeps
+  the selected spatial rule identical across downstream quantities.
+
+- Spatial-accumulation curves use the `spaccWavefront()` front door. The
+  distance- and area-relationship functions keep
+  their established names: `distanceDecay()`, `betaDecay()`, `zetaDiversity()`,
+  and `dar()`.
+
+- `spaccBeta()` gains `traits` and `tree` arguments and computes taxonomic,
+  functional, or phylogenetic beta diversity from a single front door. Supplying
+  `traits` gives the trait-weighted Baselga partition; supplying `tree` gives the
+  branch-length-weighted (PhyloSor) partition.
+
+- `diversityProfile()` gains `traits` and `tree` arguments and computes
+  taxonomic, functional (Leinster-Cobbold), or phylogenetic (Chao et al.) Hill
+  profiles from a single front door.
+
+## New Features
+
+- `extrapolateArea()` extrapolates richness to a spatial extent larger than the
+  one sampled, using the total-species (T-S) curve of Ugland, Gray & Ellingsen
+  (2003): sites are partitioned into spatial subareas, the expected total
+  richness of random subarea combinations is plotted against their convex-hull
+  area, and an asymptotic model is fitted and extended to a target area with a
+  median-bias-corrected site-bootstrap interval. New `spacc_area` class with
+  `print()`/`summary()`/`plot()`/`predict()`/`as.data.frame()` methods.
+
+- `extrapolate()` gains a calibrated `interval = "bootstrap"` (now the default)
+  that refits the chosen model across resampled seed curves and returns
+  percentile bounds, replacing the over-confident `nls` profile interval as the
+  default. `predict(fit, interval = "bootstrap")` returns a prediction band, and
+  `plot()` draws it. `interval = "profile"` recovers the old behaviour.
+
+- `extrapolate()` now reports goodness of fit (residual RMSE over the observed
+  range), an extrapolation-range note, and the nonparametric `chao2()`/`iChao2()`
+  estimates alongside the asymptote. It warns when the asymptote exceeds the
+  observed richness by more than `warn_ratio` (default 2), when it disagrees with
+  `chao2()` by more than 50%, and when `predict()` is evaluated beyond ~2.5x the
+  sampled effort.
+
+## Bug Fixes
+
+- `plot()` on a `spacc_endemism` object no longer lists "Endemic species" twice
+  in the legend. The confidence-band fill was drawn as its own guide because the
+  ribbon covered only the endemism series; that fill guide is now suppressed so a
+  single line-colour legend remains.
+- Removed a stray blank line beneath the y-axis title in `plot()` for
+  `spacc_beta` objects.
+
+- `extrapolate()` asymptote confidence intervals are no longer over-confident.
+  The previous `confint()` used an `nls` profile interval on the (ultra-smooth)
+  mean curve, ignoring across-seed variability; it could exclude the truth in
+  every replicate of a recovery simulation. `confint()` now returns the
+  calibrated bootstrap interval by default (`method = "profile"` is still
+  available). The documentation notes that the parametric asymptote can be
+  biased high on clustered or under-sampled data and points to the nonparametric
+  estimators for calibrated total-richness intervals (#1, #3, #5).
+
+## Testing
+
+- Added parameter-recovery and CI-coverage tests on data simulated with a known
+  truth: richness estimators recover the true pool size (jackknife intervals at
+  ~nominal coverage; chao/iChao near-unbiased), `extrapolate()` recovers truth on
+  near-saturation data, `extrapolateArea()` interpolates the observed area, and
+  the Hill, phylogenetic, functional, and coverage accumulation endpoints match
+  their defining formulae (#2).
+
+
 # spacc 0.8.3
 
 ## Documentation
@@ -48,7 +271,7 @@
 ### Custom Diversity Metrics (v0.8.0)
 - `spaccDiversity()` accumulates any user-supplied index along a spatial
   ordering: at each step the cumulative community is passed to a function that
-  returns a scalar. Supports `knn`, `kncn`, `random`, `radius`, and
+  returns a scalar. Supports `knn`, `kncn`, `nn_walk`, `random`, and
   `collector` orderings, abundance or incidence input, and extra arguments.
 - Returns a `spacc_diversity` object inheriting `spacc`, so the standard
   `summary()`, `plot()`, `as.data.frame()`, and `predict()` methods apply.
@@ -123,7 +346,7 @@
 
 ## Internal Changes
 - New C++ implementations: hill.cpp, beta.cpp, coverage.cpp, phylo.cpp, metrics.cpp
-- `cpp_knn_parallel_seeds()` - kNN with explicit seed indices
+- `cpp_knn_parallel_seeds()` - legacy nearest-neighbour walk with explicit seed indices
 - Added sf, areaOfEffect, ape, iNEXT, betapart to Suggests
 
 ---

@@ -1,17 +1,15 @@
 // [[Rcpp::depends(RcppParallel)]]
 #include <Rcpp.h>
 #include <RcppParallel.h>
-#include <vector>
 #include <cmath>
-#include <algorithm>
+#include <vector>
 #include "core/hill_core.h"
+#include "core/coverage_core.h"
+#include "core/inext_core.h"
+#include "parallel_utils.h"
 using namespace Rcpp;
 using namespace RcppParallel;
 
-
-// ============================================================================
-// HILL NUMBER CALCULATIONS
-// ============================================================================
 
 // [[Rcpp::export]]
 double calc_hill_number(NumericVector abundances, double q) {
@@ -20,364 +18,260 @@ double calc_hill_number(NumericVector abundances, double q) {
 }
 
 
-// Internal version for std::vector — delegates to core
-inline double calc_hill_internal(const std::vector<double>& abundances, double q) {
-  return spacc::calc_hill_number(abundances, q);
+// Rarefied / extrapolated Hill numbers of one abundance sample at sample
+// sizes m (one row per q) and their expected coverage.
+// [[Rcpp::export]]
+List calc_hill_at_size(NumericVector abundances, NumericVector m, NumericVector q) {
+  spacc::AbundanceSample s(std::vector<double>(abundances.begin(), abundances.end()));
+  NumericMatrix hill(q.size(), m.size());
+  NumericVector coverage(m.size());
+  for (int j = 0; j < m.size(); j++) {
+    coverage[j] = spacc::coverage_at_size(s, m[j]);
+    for (int i = 0; i < q.size(); i++) hill(i, j) = spacc::hill_at_size(s, m[j], q[i]);
+  }
+  return List::create(Named("hill") = hill, Named("coverage") = coverage);
 }
 
 
+// Hill numbers of one abundance sample at target coverages C (one row per q)
+// and the sample sizes those coverages correspond to.
 // [[Rcpp::export]]
-NumericMatrix cpp_knn_hill_single(IntegerMatrix species_mat,
-                                   NumericMatrix dist_mat,
-                                   int seed,
-                                   NumericVector q_values) {
-  int n_sites = species_mat.nrow();
-  int n_species = species_mat.ncol();
-  int n_q = q_values.size();
-
-  NumericMatrix curves(n_q, n_sites);
-  std::vector<bool> visited(n_sites, false);
-  std::vector<double> cumulative(n_species, 0.0);
-
-  int current = seed;
-  visited[current] = true;
-
-  // Add first site abundances
-  for (int sp = 0; sp < n_species; sp++) {
-    cumulative[sp] += species_mat(current, sp);
+List calc_hill_at_coverage(NumericVector abundances, NumericVector C, NumericVector q) {
+  spacc::AbundanceSample s(std::vector<double>(abundances.begin(), abundances.end()));
+  NumericMatrix hill(q.size(), C.size());
+  NumericVector size(C.size());
+  for (int j = 0; j < C.size(); j++) {
+    size[j] = spacc::size_at_coverage(s, C[j]);
+    for (int i = 0; i < q.size(); i++) hill(i, j) = spacc::hill_at_size(s, size[j], q[i]);
   }
-
-  // Calculate Hill numbers for each q
-  for (int qi = 0; qi < n_q; qi++) {
-    curves(qi, 0) = calc_hill_internal(cumulative, q_values[qi]);
-  }
-
-  for (int step = 1; step < n_sites; step++) {
-    // Find nearest unvisited
-    double min_dist = R_PosInf;
-    int next = -1;
-    for (int j = 0; j < n_sites; j++) {
-      if (!visited[j] && dist_mat(current, j) < min_dist) {
-        min_dist = dist_mat(current, j);
-        next = j;
-      }
-    }
-
-    current = next;
-    visited[current] = true;
-
-    // Accumulate abundances
-    for (int sp = 0; sp < n_species; sp++) {
-      cumulative[sp] += species_mat(current, sp);
-    }
-
-    // Calculate Hill numbers
-    for (int qi = 0; qi < n_q; qi++) {
-      curves(qi, step) = calc_hill_internal(cumulative, q_values[qi]);
-    }
-  }
-
-  return curves;
-}
-
-
-// Worker for parallel Hill number accumulation
-struct HillKnnWorker : public Worker {
-  const RMatrix<int> species_mat;
-  const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
-  const RVector<double> q_values;
-  RMatrix<double> curves;  // 3D flattened: (n_seeds * n_q) x n_sites
-  const int n_q;
-  const int n_sites;
-
-  HillKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                const IntegerVector& s, const NumericVector& q,
-                NumericMatrix& c, int nq, int ns)
-    : species_mat(sp), dist_mat(dm), seeds(s), q_values(q),
-      curves(c), n_q(nq), n_sites(ns) {}
-
-  void operator()(std::size_t begin, std::size_t end) {
-    int n_species = species_mat.ncol();
-
-    for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
-      std::vector<double> cumulative(n_species, 0.0);
-
-      int current = seeds[s];
-      visited[current] = true;
-
-      for (int sp = 0; sp < n_species; sp++) {
-        cumulative[sp] += species_mat(current, sp);
-      }
-
-      for (int qi = 0; qi < n_q; qi++) {
-        curves(s * n_q + qi, 0) = calc_hill_internal(cumulative, q_values[qi]);
-      }
-
-      for (int step = 1; step < n_sites; step++) {
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        current = next;
-        visited[current] = true;
-
-        for (int sp = 0; sp < n_species; sp++) {
-          cumulative[sp] += species_mat(current, sp);
-        }
-
-        for (int qi = 0; qi < n_q; qi++) {
-          curves(s * n_q + qi, step) = calc_hill_internal(cumulative, q_values[qi]);
-        }
-      }
-    }
-  }
-};
-
-
-// [[Rcpp::export]]
-List cpp_knn_hill_parallel(IntegerMatrix species_mat,
-                           NumericMatrix dist_mat,
-                           int n_seeds,
-                           NumericVector q_values,
-                           int n_cores = 1,
-                           bool progress = false) {
-  int n_sites = species_mat.nrow();
-  int n_q = q_values.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
-
-  // Flattened output: (n_seeds * n_q) x n_sites
-  NumericMatrix curves_flat(n_seeds * n_q, n_sites);
-
-  if (n_cores > 1) {
-    HillKnnWorker worker(species_mat, dist_mat, seeds, q_values,
-                         curves_flat, n_q, n_sites);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    for (int s = 0; s < n_seeds; s++) {
-      NumericMatrix single = cpp_knn_hill_single(species_mat, dist_mat,
-                                                  seeds[s], q_values);
-      for (int qi = 0; qi < n_q; qi++) {
-        for (int st = 0; st < n_sites; st++) {
-          curves_flat(s * n_q + qi, st) = single(qi, st);
-        }
-      }
-    }
-  }
-
-  // Reshape to list of matrices, one per q
-  List result(n_q);
-  CharacterVector names(n_q);
-
-  for (int qi = 0; qi < n_q; qi++) {
-    NumericMatrix q_curves(n_seeds, n_sites);
-    for (int s = 0; s < n_seeds; s++) {
-      for (int st = 0; st < n_sites; st++) {
-        q_curves(s, st) = curves_flat(s * n_q + qi, st);
-      }
-    }
-    result[qi] = q_curves;
-
-    // Name the list element
-    char name[10];
-    snprintf(name, sizeof(name), "q%.1f", q_values[qi]);
-    names[qi] = name;
-  }
-
-  result.attr("names") = names;
-  return result;
+  return List::create(Named("hill") = hill, Named("size") = size);
 }
 
 
 // ============================================================================
-// HILL BETA DIVERSITY: gamma/alpha decomposition along accumulation
+// Hill numbers of the pooled community along each order
 // ============================================================================
 
-// Worker for parallel Hill beta accumulation
-struct HillBetaKnnWorker : public Worker {
-  const RMatrix<int> species_mat;
-  const RMatrix<double> dist_mat;
-  const RVector<int> seeds;
-  const RVector<double> q_values;
+struct HillMetric {
+  RMatrix<double> out;       // (n_seeds * n_q) x n_sites
+  RVector<double> q;
 
-  // Output: flattened (n_seeds * 3 * n_q) x n_sites
-  // Layout: [seed][component=0:gamma,1:alpha,2:beta][q] x sites
-  RMatrix<double> curves;
-  const int n_q;
-  const int n_sites;
+  HillMetric(NumericMatrix& out_, const NumericVector& q_) : out(out_), q(q_) {}
 
-  HillBetaKnnWorker(const IntegerMatrix& sp, const NumericMatrix& dm,
-                    const IntegerVector& s, const NumericVector& q,
-                    NumericMatrix& c, int nq, int ns)
-    : species_mat(sp), dist_mat(dm), seeds(s), q_values(q),
-      curves(c), n_q(nq), n_sites(ns) {}
+  struct Scratch {};
+  Scratch scratch(int) const { return Scratch(); }
 
-  void operator()(std::size_t begin, std::size_t end) {
-    int n_species = species_mat.ncol();
-
-    for (std::size_t s = begin; s < end; s++) {
-      std::vector<bool> visited(n_sites, false);
-      std::vector<double> pooled(n_species, 0.0);
-
-      // Track per-site Hill numbers for alpha computation
-      // We store running power-mean accumulators per q
-      // For q=1: sum of log(hill_i), for q!=1: sum of hill_i^(1-q)
-      std::vector<double> alpha_accum(n_q, 0.0);
-
-      int current = seeds[s];
-      visited[current] = true;
-
-      // Add first site
-      std::vector<double> site_abund(n_species, 0.0);
-      for (int sp = 0; sp < n_species; sp++) {
-        double val = (double)species_mat(current, sp);
-        pooled[sp] += val;
-        site_abund[sp] = val;
-      }
-
-      // Gamma = Hill of pooled after 1 site
-      // Alpha = Hill of first site (= gamma for k=1)
-      // Beta = 1
-      for (int qi = 0; qi < n_q; qi++) {
-        double gamma_q = calc_hill_internal(pooled, q_values[qi]);
-        double hill_site = calc_hill_internal(site_abund, q_values[qi]);
-
-        // Initialize alpha accumulator
-        if (std::abs(q_values[qi] - 1.0) < 1e-10) {
-          alpha_accum[qi] = (hill_site > 0) ? std::log(hill_site) : 0.0;
-        } else {
-          alpha_accum[qi] = (hill_site > 0) ? std::pow(hill_site, 1.0 - q_values[qi]) : 0.0;
-        }
-
-        double alpha_q = hill_site;
-        double beta_q = (alpha_q > 0) ? gamma_q / alpha_q : 1.0;
-
-        int base = s * 3 * n_q;
-        curves(base + 0 * n_q + qi, 0) = gamma_q;
-        curves(base + 1 * n_q + qi, 0) = alpha_q;
-        curves(base + 2 * n_q + qi, 0) = beta_q;
-      }
-
-      for (int step = 1; step < n_sites; step++) {
-        // Find nearest unvisited
-        double min_dist = R_PosInf;
-        int next = -1;
-        for (int j = 0; j < n_sites; j++) {
-          if (!visited[j] && dist_mat(current, j) < min_dist) {
-            min_dist = dist_mat(current, j);
-            next = j;
-          }
-        }
-
-        current = next;
-        visited[current] = true;
-
-        // Compute per-site abundances and accumulate pooled
-        std::fill(site_abund.begin(), site_abund.end(), 0.0);
-        for (int sp = 0; sp < n_species; sp++) {
-          double val = (double)species_mat(current, sp);
-          pooled[sp] += val;
-          site_abund[sp] = val;
-        }
-
-        int k = step + 1;  // number of sites so far
-
-        for (int qi = 0; qi < n_q; qi++) {
-          double gamma_q = calc_hill_internal(pooled, q_values[qi]);
-          double hill_site = calc_hill_internal(site_abund, q_values[qi]);
-
-          // Update alpha accumulator
-          double alpha_q;
-          if (std::abs(q_values[qi] - 1.0) < 1e-10) {
-            // Geometric mean: exp(sum(log(hill_i)) / k)
-            alpha_accum[qi] += (hill_site > 0) ? std::log(hill_site) : 0.0;
-            alpha_q = std::exp(alpha_accum[qi] / k);
-          } else {
-            // Power mean: (sum(hill_i^(1-q)) / k)^(1/(1-q))
-            alpha_accum[qi] += (hill_site > 0) ? std::pow(hill_site, 1.0 - q_values[qi]) : 0.0;
-            alpha_q = std::pow(alpha_accum[qi] / k, 1.0 / (1.0 - q_values[qi]));
-          }
-
-          double beta_q = (alpha_q > 0) ? gamma_q / alpha_q : 1.0;
-
-          int base = s * 3 * n_q;
-          curves(base + 0 * n_q + qi, step) = gamma_q;
-          curves(base + 1 * n_q + qi, step) = alpha_q;
-          curves(base + 2 * n_q + qi, step) = beta_q;
-        }
-      }
+  void at_step(std::size_t s, int step, int, const std::vector<int>& cumulative,
+               Scratch&) {
+    const std::size_t n_q = q.size();
+    for (std::size_t qi = 0; qi < n_q; qi++) {
+      out(s * n_q + qi, step) = spacc::calc_hill_number(cumulative, q[qi]);
     }
   }
 };
 
+// [[Rcpp::export]]
+List cpp_order_hill_parallel(IntegerMatrix species_mat, IntegerMatrix orders,
+                             NumericVector q_values, int n_cores = 1) {
+  const int n_seeds = orders.nrow(), n_q = q_values.size();
+  NumericMatrix flat(n_seeds * n_q, species_mat.nrow());
+  HillMetric metric(flat, q_values);
+  run_order_metric<int>(species_mat, orders, metric, n_cores);
+  return split_components(flat, n_seeds, n_q, q_names(q_values));
+}
+
+
+// ============================================================================
+// Hill gamma / alpha / beta decomposition along each order: Jost (2007) on the
+// observed samples, or the iNEXT.beta3D coverage standardisation (Chao et al.
+// 2023)
+// ============================================================================
+
+// Dissimilarities of a beta value over N assemblages (Chao et al. 2023):
+// 1 - C_qN (Sorensen-type), 1 - U_qN (Jaccard-type), 1 - V_qN, 1 - S_qN.
+static inline void beta_dissimilarities(double beta, double N, double q, double* d) {
+  if (N <= 1) {
+    for (int i = 0; i < 4; i++) d[i] = NA_REAL;
+    return;
+  }
+  if (q == 1.0) {
+    d[0] = d[1] = std::log(beta) / std::log(N);
+  } else {
+    d[0] = (std::pow(beta, 1.0 - q) - 1.0) / (std::pow(N, 1.0 - q) - 1.0);
+    d[1] = (std::pow(beta, q - 1.0) - 1.0) / (std::pow(N, q - 1.0) - 1.0);
+  }
+  d[2] = (beta - 1.0) / (N - 1.0);
+  d[3] = (1.0 / beta - 1.0) / (1.0 / N - 1.0);
+}
+
+struct HillBetaMetric {
+  static constexpr int kObserved = 3;       // gamma, alpha, beta
+  static constexpr int kStandardized = 7;   // + four dissimilarities
+
+  RMatrix<int> species;
+  RMatrix<double> out;       // (n_seeds * n_comp * n_q) x n_sites, per seed [comp][q]
+  RMatrix<double> coverage;  // n_seeds x n_sites, standardisation coverage per step
+  RVector<double> q;
+  bool standardize;
+  double target;             // fixed coverage, or NaN for the per-step reference
+  int n_comp;
+
+  HillBetaMetric(const IntegerMatrix& species_, NumericMatrix& out_,
+                 NumericMatrix& coverage_, const NumericVector& q_,
+                 bool standardize_, double target_)
+    : species(species_), out(out_), coverage(coverage_), q(q_),
+      standardize(standardize_), target(target_),
+      n_comp(standardize_ ? kStandardized : kObserved) {}
+
+  struct Scratch {
+    std::vector<double> alpha_accum;   // per q: sum of log(hill_i) (q = 1) or hill_i^(1-q)
+    std::vector<int> site_abund;
+    spacc::AbundanceSample joint;      // species-by-site cells of the accumulated sites
+  };
+  Scratch scratch(int n_species) const {
+    Scratch sc;
+    sc.alpha_accum.assign(q.size(), 0.0);
+    sc.site_abund.assign(n_species, 0);
+    return sc;
+  }
+
+  void at_step(std::size_t s, int step, int site, const std::vector<int>& pooled,
+               Scratch& sc) {
+    if (standardize) standardized_step(s, step, site, pooled, sc);
+    else observed_step(s, step, site, pooled, sc);
+  }
+
+  // Gamma of the pooled sample and alpha of the joint sample (Chiu et al.
+  // 2014: joint Hill number / N), both at the same coverage C. Without a
+  // fixed target, C is the lower of the two observed coverages, so both are
+  // read off the observed sample or its rarefaction.
+  void standardized_step(std::size_t s, int step, int site, const std::vector<int>& pooled,
+                         Scratch& sc) {
+    const int n_species = species.ncol();
+    for (int sp = 0; sp < n_species; sp++) sc.joint.add(species(site, sp));
+    spacc::AbundanceSample gamma_sample(pooled);
+
+    const double N = step + 1;
+    const double C = std::isnan(target)
+      ? std::min(spacc::coverage_at_size(gamma_sample, gamma_sample.n),
+                 spacc::coverage_at_size(sc.joint, sc.joint.n))
+      : target;
+    coverage(s, step) = C;
+    const double m_gamma = spacc::size_at_coverage(gamma_sample, C);
+    const double m_alpha = spacc::size_at_coverage(sc.joint, C);
+
+    const std::size_t n_q = q.size();
+    const std::size_t base = s * n_comp * n_q;
+    for (std::size_t qi = 0; qi < n_q; qi++) {
+      const double gamma_q = spacc::hill_at_size(gamma_sample, m_gamma, q[qi]);
+      const double alpha_q = spacc::hill_at_size(sc.joint, m_alpha, q[qi]) / N;
+      const double beta_q = gamma_q / alpha_q;
+      double d[4];
+      beta_dissimilarities(beta_q, N, q[qi], d);
+      out(base + 0 * n_q + qi, step) = gamma_q;
+      out(base + 1 * n_q + qi, step) = alpha_q;
+      out(base + 2 * n_q + qi, step) = beta_q;
+      for (int c = 0; c < 4; c++) out(base + (3 + c) * n_q + qi, step) = d[c];
+    }
+  }
+
+  void observed_step(std::size_t s, int step, int site, const std::vector<int>& pooled,
+                     Scratch& sc) {
+    const int n_species = species.ncol();
+    for (int sp = 0; sp < n_species; sp++) sc.site_abund[sp] = species(site, sp);
+
+    const std::size_t n_q = q.size();
+    const int k = step + 1;
+    const std::size_t base = s * kObserved * n_q;
+    for (std::size_t qi = 0; qi < n_q; qi++) {
+      const double gamma_q = spacc::calc_hill_number(pooled, q[qi]);
+      const double hill_site = spacc::calc_hill_number(sc.site_abund, q[qi]);
+      const bool shannon = std::abs(q[qi] - 1.0) < 1e-10;
+
+      if (hill_site > 0) {
+        sc.alpha_accum[qi] += shannon ? std::log(hill_site)
+                                      : std::pow(hill_site, 1.0 - q[qi]);
+      }
+      double alpha_q;
+      if (step == 0) {
+        alpha_q = hill_site;
+      } else if (shannon) {
+        alpha_q = std::exp(sc.alpha_accum[qi] / k);
+      } else {
+        alpha_q = std::pow(sc.alpha_accum[qi] / k, 1.0 / (1.0 - q[qi]));
+      }
+      const double beta_q = (alpha_q > 0) ? gamma_q / alpha_q : 1.0;
+
+      out(base + 0 * n_q + qi, step) = gamma_q;
+      out(base + 1 * n_q + qi, step) = alpha_q;
+      out(base + 2 * n_q + qi, step) = beta_q;
+    }
+  }
+};
+
+// coverage_target: NA for the per-step reference coverage, used only when
+// standardize is true.
+// [[Rcpp::export]]
+List cpp_order_hill_beta_parallel(IntegerMatrix species_mat, IntegerMatrix orders,
+                                  NumericVector q_values, int n_cores = 1,
+                                  bool standardize = false,
+                                  double coverage_target = NA_REAL) {
+  const int n_seeds = orders.nrow(), n_q = q_values.size(), n_sites = species_mat.nrow();
+  const int n_comp = standardize ? HillBetaMetric::kStandardized : HillBetaMetric::kObserved;
+  NumericMatrix flat(n_seeds * n_comp * n_q, n_sites);
+  NumericMatrix coverage(standardize ? n_seeds : 0, standardize ? n_sites : 0);
+  HillBetaMetric metric(species_mat, flat, coverage, q_values, standardize,
+                        ISNAN(coverage_target) ? std::nan("") : coverage_target);
+  run_order_metric<int>(species_mat, orders, metric, n_cores);
+
+  const char* all_names[HillBetaMetric::kStandardized] =
+    {"gamma", "alpha", "beta", "1-CqN", "1-UqN", "1-VqN", "1-SqN"};
+  CharacterVector comp_names(n_comp);
+  for (int c = 0; c < n_comp; c++) comp_names[c] = all_names[c];
+  List out = split_component_blocks(flat, n_seeds, comp_names, q_names(q_values));
+  if (standardize) {
+    out.push_back(coverage, "coverage");
+  }
+  return out;
+}
+
+
+// ============================================================================
+// Hill numbers with Chao-Jost coverage along each order
+// ============================================================================
+
+struct HillCoverageMetric {
+  RMatrix<double> hills;     // (n_seeds * n_q) x n_sites
+  RMatrix<double> coverage;  // n_seeds x n_sites
+  RVector<double> q;
+
+  HillCoverageMetric(NumericMatrix& hills_, NumericMatrix& coverage_,
+                     const NumericVector& q_)
+    : hills(hills_), coverage(coverage_), q(q_) {}
+
+  struct Scratch {};
+  Scratch scratch(int) const { return Scratch(); }
+
+  void at_step(std::size_t s, int step, int, const std::vector<int>& cumulative,
+               Scratch&) {
+    coverage(s, step) = spacc::calc_chao_coverage(cumulative);
+    const std::size_t n_q = q.size();
+    for (std::size_t qi = 0; qi < n_q; qi++) {
+      hills(s * n_q + qi, step) = spacc::calc_hill_number(cumulative, q[qi]);
+    }
+  }
+};
 
 // [[Rcpp::export]]
-List cpp_knn_hill_beta_parallel(IntegerMatrix species_mat,
-                                 NumericMatrix dist_mat,
-                                 int n_seeds,
-                                 NumericVector q_values,
-                                 int n_cores = 1,
-                                 bool progress = false) {
-  int n_sites = species_mat.nrow();
-  int n_q = q_values.size();
-
-  IntegerVector seeds = Rcpp::sample(n_sites, n_seeds, true) - 1;
-
-  // Flattened: (n_seeds * 3 * n_q) x n_sites
-  NumericMatrix curves_flat(n_seeds * 3 * n_q, n_sites);
-
-  if (n_cores > 1) {
-    HillBetaKnnWorker worker(species_mat, dist_mat, seeds, q_values,
-                              curves_flat, n_q, n_sites);
-    parallelFor(0, n_seeds, worker);
-  } else {
-    HillBetaKnnWorker worker(species_mat, dist_mat, seeds, q_values,
-                              curves_flat, n_q, n_sites);
-    worker(0, n_seeds);
-  }
-
-  // Reshape to named lists: $gamma, $alpha, $beta
-  // Each is a list of matrices (one per q)
-  List gamma_list(n_q), alpha_list(n_q), beta_list(n_q);
-  CharacterVector q_names(n_q);
-
-  for (int qi = 0; qi < n_q; qi++) {
-    NumericMatrix gamma_mat(n_seeds, n_sites);
-    NumericMatrix alpha_mat(n_seeds, n_sites);
-    NumericMatrix beta_mat(n_seeds, n_sites);
-
-    for (int s = 0; s < n_seeds; s++) {
-      int base = s * 3 * n_q;
-      for (int st = 0; st < n_sites; st++) {
-        gamma_mat(s, st) = curves_flat(base + 0 * n_q + qi, st);
-        alpha_mat(s, st) = curves_flat(base + 1 * n_q + qi, st);
-        beta_mat(s, st)  = curves_flat(base + 2 * n_q + qi, st);
-      }
-    }
-
-    gamma_list[qi] = gamma_mat;
-    alpha_list[qi] = alpha_mat;
-    beta_list[qi]  = beta_mat;
-
-    char name[10];
-    snprintf(name, sizeof(name), "q%.1f", q_values[qi]);
-    q_names[qi] = name;
-  }
-
-  gamma_list.attr("names") = q_names;
-  alpha_list.attr("names") = q_names;
-  beta_list.attr("names")  = q_names;
-
+List cpp_order_hill_coverage_parallel(IntegerMatrix species_mat, IntegerMatrix orders,
+                                      NumericVector q_values, int n_cores = 1) {
+  const int n_seeds = orders.nrow(), n_q = q_values.size();
+  NumericMatrix hills_flat(n_seeds * n_q, species_mat.nrow());
+  NumericMatrix coverage(n_seeds, species_mat.nrow());
+  HillCoverageMetric metric(hills_flat, coverage, q_values);
+  run_order_metric<int>(species_mat, orders, metric, n_cores);
   return List::create(
-    Named("gamma") = gamma_list,
-    Named("alpha") = alpha_list,
-    Named("beta")  = beta_list
+    Named("hills") = split_components(hills_flat, n_seeds, n_q, q_names(q_values)),
+    Named("coverage") = coverage
   );
 }

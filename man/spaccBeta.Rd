@@ -7,15 +7,20 @@
 spaccBeta(
   x,
   coords,
+  traits = NULL,
+  tree = NULL,
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   index = c("sorensen", "jaccard"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL,
+  pool = NULL
 )
 }
 \arguments{
@@ -23,9 +28,16 @@ spaccBeta(
 
 \item{coords}{A data.frame with columns \code{x} and \code{y}, or a \code{spacc_dist} object.}
 
+\item{traits}{Optional species-by-traits matrix or data.frame (row names
+matching species). When supplied, functional beta diversity is computed.}
+
+\item{tree}{Optional phylogenetic tree of class \code{phylo}, or a pairwise
+phylogenetic distance matrix. When supplied, phylogenetic beta diversity is
+computed. Supply at most one of \code{traits} or \code{tree}.}
+
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{index}{Character. Dissimilarity index: \code{"sorensen"} (default) or \code{"jaccard"}.}
 
@@ -42,6 +54,14 @@ spaccBeta(
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final beta values for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
+
+\item{pool}{Optional vector with one value per site (habitat, degradation
+level, region) grouping sites into pools. The partition is then also
+computed between pooled assemblages along the same orders.}
 }
 \value{
 An object of class \code{spacc_beta} containing:
@@ -49,6 +69,8 @@ An object of class \code{spacc_beta} containing:
 \item{beta_turnover}{Matrix of turnover component}
 \item{beta_nestedness}{Matrix of nestedness component}
 \item{distance}{Matrix of cumulative distances}
+\item{pooled}{With \code{pool}: the same four matrices for the pooled
+assemblages (n_seeds x n_pools-1), plus \code{pool} and \code{n_pools}; else \code{NULL}}
 \item{n_seeds, n_sites, method, index}{Parameters used}
 }
 \description{
@@ -68,6 +90,24 @@ species composition changes as you expand spatially.
 }
 
 The sum of turnover and nestedness equals total beta diversity.
+
+Supplying \code{traits} computes functional beta diversity, weighting the partition
+by the trait distinctiveness of the species exchanged between the accumulated
+pool and each new site. Supplying \code{tree} computes phylogenetic beta diversity
+(PhyloSor), weighting by shared branch length. The taxonomic, functional, and
+phylogenetic variants all return a \code{spacc_beta} object whose \code{beta_type} field
+records which was computed. \code{map = TRUE} is supported for the taxonomic
+variant only.
+
+With \code{pool}, sites are aggregated into pooled assemblages (a species is
+present in a pool if it occurs in any of its sites) and the partition is
+repeated between pools: each site order becomes the order in which its
+pools are first reached, and the distance between two pools is the mean
+distance between their sites. Partitions at the two resolutions can
+disagree, for example when degraded habitats are homogenised at the pool
+level while individual sites still differ (Jones et al. 2025).
+\code{summary(x, resolution = "pooled")} and
+\code{plot(x, resolution = "pooled")} or \code{"both"} show the pooled partition.
 }
 \examples{
 \donttest{
@@ -79,12 +119,22 @@ plot(beta)
 
 # Compare Sorensen vs Jaccard
 beta_jac <- spaccBeta(species, coords, index = "jaccard")
+
+# Functional beta diversity (pass a species-by-traits matrix)
+traits <- matrix(rnorm(30 * 3), nrow = 30)
+rownames(traits) <- colnames(species) <- paste0("sp", 1:30)
+beta_func <- spaccBeta(species, coords, traits = traits)
 }
 
 }
 \references{
 Baselga, A. (2010). Partitioning the turnover and nestedness components
 of beta diversity. Global Ecology and Biogeography, 19, 134-143.
+
+Jones, F.A.M., Hardenbol, A.A., Hekkala, A.-M., et al. (2025). Partitioning
+beta diversity at two spatial resolutions reveals biotic homogenisation
+with habitat degradation. Diversity and Distributions, 31, e70080.
+\doi{10.1111/ddi.70080}
 }
 \seealso{
 \code{\link[betapart:beta.pair]{betapart::beta.pair()}} for pairwise beta diversity

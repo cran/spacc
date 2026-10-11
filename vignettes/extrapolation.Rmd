@@ -13,11 +13,21 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
+```
+
+## Installation
+
+```{r, eval = FALSE}
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
 ```
 
 ## Overview
@@ -220,7 +230,9 @@ A single call returns one fitted model. The default is
 Michaelis-Menten, but any of the six names can be passed. The returned
 `spacc_fit` object carries the asymptote, its confidence interval, the
 AIC, and the underlying `nls` fit, which is what makes `coef()`,
-`confint()`, and `predict()` work on it.
+`confint()`, and `predict()` work on it. By default the interval is a
+calibrated bootstrap across the seed curves rather than the `nls` profile
+interval; the difference and the reasons for it are taken up below.
 
 ### Model comparison
 
@@ -229,7 +241,7 @@ fit:
 
 ```{r models}
 models <- c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic")
-fits <- lapply(models, function(m) extrapolate(sac, model = m))
+fits <- lapply(models, function(m) extrapolate(sac, model = m, interval = "none"))
 names(fits) <- models
 
 # Compare AIC
@@ -247,8 +259,9 @@ the observed range can still disagree about where they level off. The
 spread across these five asymptotes, set against the known true value of
 `r 50`, shows directly how much model choice matters here.
 
-```{r plot-best, fig.cap = "Best-fitting asymptotic model."}
-best <- fits[[which.min(sapply(fits, function(f) f$aic))]]
+```{r plot-best, fig.cap = "Best-fitting asymptotic model with bootstrap band."}
+best_name <- names(fits)[which.min(sapply(fits, function(f) f$aic))]
+best <- extrapolate(sac, model = best_name)
 plot(best) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -257,8 +270,8 @@ plot(best) +
 ```
 
 The solid line is the observed mean curve, the dashed line the fitted
-model extended past the data, and the dotted horizontal line the
-estimated asymptote.
+model extended past the data, the shaded band the bootstrap prediction
+interval, and the dotted horizontal line the estimated asymptote.
 
 ### EVT model
 
@@ -286,7 +299,7 @@ convergence flag. This is the recommended entry point when the goal is
 model selection rather than a single pre-chosen form.
 
 ```{r compare-models}
-cm <- compareModels(sac, progress = FALSE)
+cm <- compareModels(sac)
 cm
 ```
 
@@ -305,23 +318,35 @@ a weight near 1 indicates a clear winner, whereas weights spread evenly
 across several models warn that the asymptote is poorly identified and
 any single point estimate is fragile.
 
-The chosen fit exposes its parameters and their intervals through the
-standard extractors. Here `coef()` returns the fitted parameters and
-`confint()` their profile-likelihood intervals:
+The chosen fit exposes its parameters and intervals through the standard
+extractors. `coef()` returns the fitted parameters and `confint()` the
+asymptote interval. By default `confint()` returns the bootstrap interval
+stored on the fit; `method = "profile"` recovers the `nls`
+profile-likelihood interval for comparison:
 
 ```{r coef-confint}
 coef(best)
-suppressMessages(confint(best))
+confint(best)
+confint(best, method = "profile")
 ```
 
-A quick goodness check is to look at the residuals of the fit against
-the observed curve. Systematic curvature in the residuals signals that
-the model shape is wrong even if the asymptote looks plausible:
+The profile interval is computed from the residuals of a single fit to
+the mean curve. Because averaging many seeds makes that curve very smooth,
+those residuals are tiny and the profile interval is correspondingly
+narrow, ignoring the variability between seed orderings. The bootstrap
+interval refits the model across resampled seed curves, so it propagates
+that across-seed variability and is the wider, more honest summary of how
+well the asymptote is pinned down.
+
+`extrapolate()` also reports goodness of fit directly. The fit carries the
+residual root-mean-square error over the observed range, and `print()`
+shows it together with the asymptote, the nonparametric `chao2()` and
+`iChao2()` estimates, and an effort range within which predictions are
+reasonable:
 
 ```{r residuals}
-obs <- as.data.frame(best)
-resid <- obs$observed - obs$predicted
-round(c(rmse = sqrt(mean(resid^2)), max_abs = max(abs(resid))), 3)
+best$gof$rmse
+best
 ```
 
 The fit goes through `nls()`, which can fail to converge when the curve
@@ -331,15 +356,24 @@ used for EVT is more stable but still not guaranteed. When fitting fails,
 erroring, and `compareModels()` marks that row as not converged so the
 remaining models can still be ranked.
 
-A small root-mean-square residual confirms that the chosen model tracks
-the observed range, but it says nothing about the extrapolated part of the
-curve, where there is no data to compute a residual against. This is the
-reason the AIC table and the asymptote interval carry more weight than the
-in-sample fit statistics: two models can have nearly identical residuals
-over the sampled effort and still place their ceilings far apart. The
-profile-likelihood interval from `confint()` is the most honest single
-summary of how well the asymptote is pinned down, and a wide interval is a
-signal that the curve has not yet given the data needed to fix it.
+A small residual confirms that the chosen model tracks the observed range,
+but it says nothing about the extrapolated part of the curve, where there
+is no data to compute a residual against. Two models can have nearly
+identical residuals over the sampled effort and still place their ceilings
+far apart, which is why the AIC table and the asymptote interval carry more
+weight than the in-sample fit statistics.
+
+A caution applies to the asymptote itself. On clustered or strongly
+under-sampled presence-absence data the parametric asymptote tends to
+overestimate true richness, sometimes by tens of percent, because the
+curve is far from saturation. The bootstrap interval quantifies the
+uncertainty of the fitted asymptote, but it is centred on that possibly
+biased estimate and is not a calibrated interval for true total richness.
+`extrapolate()` warns when the asymptote runs well above the observed
+richness or disagrees with `chao2()`, and for calibrated total-richness
+intervals the nonparametric estimators in the richness-estimation vignette
+are the better tool. Using both routes and checking that they roughly
+agree is more defensible than trusting the asymptote alone.
 
 ## Tuning
 
@@ -381,11 +415,12 @@ ext <- extrapolateCoverage(cov, target_coverage = c(0.95, 0.99, 1.0), q = 0)
 ext
 ```
 
-Targets below the observed coverage are interpolated; targets above it
-invoke the Chao1-based extrapolation for `q = 0`, with separate
-estimators for the Shannon (`q = 1`) and Simpson (`q = 2`) orders. The
-printed output reports observed coverage and richness alongside the
-extrapolated values so the size of the extrapolation step is visible.
+Targets below the observed coverage are interpolated along each seed's curve;
+targets above it extrapolate the pooled sample towards the Chao1 asymptote for
+`q = 0`. The Shannon (`q = 1`) and Simpson (`q = 2`) orders need the Hill
+curves of a `spaccHillCoverage()` object. The printed output reports observed
+coverage and richness alongside the extrapolated values so the size of the
+extrapolation step is visible.
 
 ```{r plot-cov-extrap, fig.cap = "Coverage-based extrapolation of species richness."}
 plot(ext) +
@@ -400,16 +435,84 @@ abundances. Standardizing by coverage ensures equal completeness rather
 than equal sample size, so a richer but less thoroughly sampled
 community is not penalised for its lower count.
 
+### Sites drawn from a finite set of units
+
+Chao2 and the Chiu (2023) coverage treat the sites as draws with
+replacement from an unlimited set of units. An atlas grid or a plot network
+is finite, and a survey often covers a large fraction $w = t / T$ of its
+$T$ units. Once $w$ is large, the species not yet seen can only sit in the
+few remaining units, and at $w = 1$ the survey is a census. `n_units = T`
+switches both estimators to their without-replacement forms. The example
+is a 20 x 20 grid of rare species, of which a survey visits 320 cells:
+
+```{r finite-units}
+set.seed(1)
+grid <- sapply(runif(300, 0.001, 0.03),
+               function(p) rbinom(400, 1, p) * (1L + rpois(400, 1)))
+grid <- grid[, colSums(grid) > 0]
+cells <- data.frame(x = rep(1:20, 20), y = rep(1:20, each = 20))
+surveyed <- sample(400, 320)
+survey <- grid[surveyed, ]
+detected <- colSums(survey) > 0
+
+c(true = ncol(grid), observed = sum(detected),
+  chao2 = chao2(survey)$estimate,
+  MoRE = chao2(survey, n_units = 400)$estimate)
+
+cov_wr <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                        coverage = "chiu", progress = FALSE, seed = 1)
+cov_grid <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                          coverage = "chiu", n_units = 400,
+                          progress = FALSE, seed = 1)
+c(true = sum(grid[, detected]) / sum(grid),
+  with_replacement = mean(cov_wr$coverage[, 320]),
+  n_units = mean(cov_grid$coverage[, 320]))
+```
+
+Chao2 places the total above the true 283 species, MoRE below it and
+closer; the finite-population coverage lands next to the true share
+where the with-replacement one falls short of it.
+
+`chao2(n_units = )` is the moment-based estimator MoRE (Chiu 2023, Methods
+in Ecology and Evolution). The coverage writes the abundance of the
+undetected species as their estimated number times the mean abundance of a
+unique species; with `n_units` the number is the MoRE term, so richness and
+coverage of one sample rest on the same estimate of what is missing.
+`extrapolate(n_units = )` prints MoRE next to the fitted asymptote.
+
+On simulated grids, with the truth taken as the share of the grid's total
+abundance held by the detected species, the finite-population coverage has
+the lower error once half the grid is sampled. The grids are 200 cells with
+occupancies of 0.003 to 0.15 (common) and 400 cells with occupancies of
+0.001 to 0.02 (sparse), 400 draws per row:
+
+| Grid | $w$ | True coverage | RMSE, with replacement | RMSE, `n_units` |
+|---|---|---|---|---|
+| common | 0.10 | 0.856 | 0.064 | 0.060 |
+| common | 0.50 | 0.996 | 0.0045 | 0.0038 |
+| common | 0.95 | 1.000 | 0.0025 | 0.0002 |
+| sparse | 0.10 | 0.467 | 0.073 | 0.104 |
+| sparse | 0.30 | 0.838 | 0.038 | 0.040 |
+| sparse | 0.50 | 0.947 | 0.020 | 0.016 |
+| sparse | 0.80 | 0.991 | 0.016 | 0.004 |
+| sparse | 0.95 | 0.999 | 0.015 | 0.0015 |
+
+Near a census the with-replacement coverage stays below the truth by about
+0.014 on the sparse grid, because Chao2 still predicts undetected species
+that cannot exist; the finite form removes that bias. At small fractions of
+a sparse grid MoRE predicts more undetected species than Chao2 and the
+coverage comes out low, so `n_units` pays off from about half the grid on.
+
 `dar()` fits the relationship between diversity (Hill numbers) and cumulative
 area (Ma 2018), generalising the classical species-area relationship to every
 Hill number order:
 
-```{r dar, eval = requireNamespace("sf", quietly = TRUE)}
+```{r dar}
 dar_result <- dar(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
 dar_result
 ```
 
-```{r plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2.", eval = requireNamespace("sf", quietly = TRUE)}
+```{r plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2."}
 plot(dar_result) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -426,10 +529,14 @@ evenness is roughly constant across scales and richness alone carries the
 spatial signal; if the higher-order curves flatten earlier than the
 richness curve, common and dominant species saturate first while rare
 species keep accumulating, which is the usual pattern for aggregated
-communities. The area axis is built from the cumulative convex hull of
-the accumulated sites by default, so it requires `sf`; passing
-`area_method = "count"` substitutes the site count as an area proxy when
-`sf` is not available.
+communities. The area axis is the convex hull of the accumulated sites by
+default; `area_method = "voronoi"` sums the Voronoi cells of the accumulated
+sites instead, and `"count"` uses the number of sites.
+
+`dar()` also takes a curve object computed earlier, so the area scaling of
+phylogenetic or functional facets comes from the same site orders as the
+curve itself: `dar(spaccFunc(...))` gives one diversity-area curve per
+functional metric, `dar(spaccPhylo(...))` one per phylogenetic metric.
 
 Reading the DAR as a power law, $D = c\,A^{z}$ with diversity $D$, area
 $A$, intercept $c$, and scaling exponent $z$, gives a compact way to
@@ -438,25 +545,70 @@ facet of diversity grows with area. A steep $z$ at order zero with a
 shallow $z$ at order two is the signature of a community where rare
 species drive the area effect, which is exactly the case where a richness
 estimate from a small plot will most badly understate the regional total.
+`coef()` returns the fitted $c$ and $z$ of each curve:
+
+```{r dar-coef}
+coef(dar_result)
+```
 
 ## Predicting richness at new effort levels
 
 Use `predict()` on a fitted extrapolation model to read the curve at any
-effort, inside or beyond the sampled range:
+effort, inside or beyond the sampled range. Point predictions come back
+as a plain vector:
 
 ```{r predict}
-predict(best, n = c(50, 100, 200, 500))
+predict(best, n = c(50, 100, 200))
 ```
 
-The first two values fall within the observed 100 sites and so are
-interpolations, which are well supported. The prediction at 200 doubles
-the effort and the one at 500 quintuples it; both are genuine
-extrapolations and should be read as model-dependent. A defensible rule
-is to trust predictions up to roughly twice the maximum observed effort
-and to treat anything further as illustrative. Beyond that range
-different models that fit the data equally well diverge sharply, and the
-confidence interval on the asymptote, not the point prediction, is the
-honest summary.
+With `interval = "bootstrap"` the same call returns a prediction band
+built from the bootstrap refits:
+
+```{r predict-interval}
+predict(best, n = c(50, 100, 200), interval = "bootstrap")
+```
+
+The first value falls within the observed 100 sites and so is an
+interpolation, which is well supported. The prediction at 200 doubles the
+effort and is a genuine extrapolation that should be read as
+model-dependent. `predict()` warns once the requested effort runs past
+roughly two and a half times the maximum observed effort, the common
+rarefaction rule of thumb; past that range different models that fit the
+data equally well diverge sharply, and the prediction band, not the point
+estimate, is the honest summary.
+
+## Extrapolating to a larger area
+
+`extrapolate()` extends the curve in sample count: a prediction at 200
+sites describes a survey twice the size of the one actually run, within
+the same spatial extent. A different question is how many species a region
+*larger* than the sampled extent would hold. `extrapolateArea()` answers
+it with the total-species (T-S) curve of Ugland, Gray and Ellingsen
+(2003). Sites are partitioned into spatial subareas; for each number of
+subareas the expected total richness of random combinations is plotted
+against their combined convex-hull area; an asymptotic model is fitted to
+that species-area curve and extended to a target area.
+
+```{r area}
+area_fit <- extrapolateArea(pa, coords, n_subareas = 8,
+                            model = "michaelis-menten", R = 100,
+                            seed = 1, progress = FALSE)
+area_fit
+```
+
+The observed area is the convex hull of the sampled points; the target
+area defaults to twice that. The interval is a site bootstrap, recentred
+on the point estimate to remove the downward bias that resampling sites
+with replacement would otherwise introduce. `as.data.frame()` returns the
+T-S curve, and `predict()` reads the fitted curve at any area:
+
+```{r area-predict}
+predict(area_fit, area = c(area_fit$observed_area, 2 * area_fit$observed_area),
+        interval = "bootstrap")
+```
+
+As with sample-count extrapolation, the fitted ceiling is model-dependent
+and most trustworthy for areas not far beyond the one sampled.
 
 ## Comparison to alternatives
 
@@ -561,6 +713,9 @@ then dominated by sampling noise.
   45-67.
 - Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
   Ecology, 104, e4099.
+- Chiu, C.-H. (2023). A species richness estimator for sample-based
+  incidence data sampled without replacement. Methods in Ecology and
+  Evolution, 14, 2482-2493.
 - Lomolino, M.V. (2000). Ecology's most general, yet protean pattern:
   the species-area relationship. Journal of Biogeography, 27, 17-26.
 - Ma, Z. (2018). Generalizing the species-area relationship with

@@ -2,11 +2,18 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----simulate-----------------------------------------------------------------
 library(spacc)
@@ -35,7 +42,7 @@ sac <- spacc(pa, coords, n_seeds = 30, progress = FALSE)
 
 ## ----models-------------------------------------------------------------------
 models <- c("michaelis-menten", "lomolino", "asymptotic", "weibull", "logistic")
-fits <- lapply(models, function(m) extrapolate(sac, model = m))
+fits <- lapply(models, function(m) extrapolate(sac, model = m, interval = "none"))
 names(fits) <- models
 
 # Compare AIC
@@ -45,8 +52,9 @@ data.frame(
   AIC = sapply(fits, function(f) round(f$aic, 1))
 )
 
-## ----plot-best, fig.cap = "Best-fitting asymptotic model."--------------------
-best <- fits[[which.min(sapply(fits, function(f) f$aic))]]
+## ----plot-best, fig.cap = "Best-fitting asymptotic model with bootstrap band."----
+best_name <- names(fits)[which.min(sapply(fits, function(f) f$aic))]
+best <- extrapolate(sac, model = best_name)
 plot(best) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
@@ -58,7 +66,7 @@ fit_evt <- extrapolate(sac, model = "evt")
 fit_evt
 
 ## ----compare-models-----------------------------------------------------------
-cm <- compareModels(sac, progress = FALSE)
+cm <- compareModels(sac)
 cm
 
 ## ----compare-table------------------------------------------------------------
@@ -66,12 +74,12 @@ as.data.frame(cm)[, c("model", "AIC", "delta_AIC", "AIC_weight", "converged")]
 
 ## ----coef-confint-------------------------------------------------------------
 coef(best)
-suppressMessages(confint(best))
+confint(best)
+confint(best, method = "profile")
 
 ## ----residuals----------------------------------------------------------------
-obs <- as.data.frame(best)
-resid <- obs$observed - obs$predicted
-round(c(rmse = sqrt(mean(resid^2)), max_abs = max(abs(resid))), 3)
+best$gof$rmse
+best
 
 ## ----seeds--------------------------------------------------------------------
 sapply(c(5, 20, 50), function(k) {
@@ -92,17 +100,56 @@ plot(ext) +
     plot.background = ggplot2::element_rect(fill = "transparent")
   )
 
-## ----dar, eval = requireNamespace("sf", quietly = TRUE)-----------------------
+## ----finite-units-------------------------------------------------------------
+set.seed(1)
+grid <- sapply(runif(300, 0.001, 0.03),
+               function(p) rbinom(400, 1, p) * (1L + rpois(400, 1)))
+grid <- grid[, colSums(grid) > 0]
+cells <- data.frame(x = rep(1:20, 20), y = rep(1:20, each = 20))
+surveyed <- sample(400, 320)
+survey <- grid[surveyed, ]
+detected <- colSums(survey) > 0
+
+c(true = ncol(grid), observed = sum(detected),
+  chao2 = chao2(survey)$estimate,
+  MoRE = chao2(survey, n_units = 400)$estimate)
+
+cov_wr <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                        coverage = "chiu", progress = FALSE, seed = 1)
+cov_grid <- spaccCoverage(survey, cells[surveyed, ], n_seeds = 20,
+                          coverage = "chiu", n_units = 400,
+                          progress = FALSE, seed = 1)
+c(true = sum(grid[, detected]) / sum(grid),
+  with_replacement = mean(cov_wr$coverage[, 320]),
+  n_units = mean(cov_grid$coverage[, 320]))
+
+## ----dar----------------------------------------------------------------------
 dar_result <- dar(species, coords, q = c(0, 1, 2), n_seeds = 20, progress = FALSE)
 dar_result
 
-## ----plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2.", eval = requireNamespace("sf", quietly = TRUE)----
+## ----plot-dar, fig.cap = "Diversity-area relationship for q = 0, 1, 2."-------
 plot(dar_result) +
   ggplot2::theme(
     panel.background = ggplot2::element_rect(fill = "transparent"),
     plot.background = ggplot2::element_rect(fill = "transparent")
   )
 
+## ----dar-coef-----------------------------------------------------------------
+coef(dar_result)
+
 ## ----predict------------------------------------------------------------------
-predict(best, n = c(50, 100, 200, 500))
+predict(best, n = c(50, 100, 200))
+
+## ----predict-interval---------------------------------------------------------
+predict(best, n = c(50, 100, 200), interval = "bootstrap")
+
+## ----area---------------------------------------------------------------------
+area_fit <- extrapolateArea(pa, coords, n_subareas = 8,
+                            model = "michaelis-menten", R = 100,
+                            seed = 1, progress = FALSE)
+area_fit
+
+## ----area-predict-------------------------------------------------------------
+predict(area_fit, area = c(area_fit$observed_area, 2 * area_fit$observed_area),
+        interval = "bootstrap")
 

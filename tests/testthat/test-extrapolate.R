@@ -174,7 +174,9 @@ test_that("predict.spacc_fit extrapolates beyond observed", {
                parallel = FALSE, progress = FALSE, seed = 1)
   fit <- extrapolate(sac, model = "michaelis-menten")
 
-  preds <- predict(fit, n = c(50, 100, 200))
+  # predicting far past the sampled effort warns (issue #5)
+  expect_warning(predict(fit, n = 200), "beyond")
+  preds <- suppressWarnings(predict(fit, n = c(50, 100, 200)))
   expect_length(preds, 3)
   expect_true(all(diff(preds) >= 0))
 })
@@ -337,4 +339,14 @@ test_that("compareModels best_model has delta_AIC = 0", {
 
   best_row <- cm$table[cm$table$model == cm$best_model, ]
   expect_equal(best_row$delta_AIC, 0)
+})
+
+
+test_that("an argument nls() does not know is an error, not a failed fit", {
+  set.seed(1)
+  coords <- data.frame(x = runif(60), y = runif(60))
+  sac <- spacc(matrix(rbinom(60 * 40, 1, 0.15), 60), coords, n_seeds = 10, progress = FALSE)
+  expect_error(extrapolate(sac, interval = "none", progress = FALSE), "Unknown argument")
+  expect_error(compareModels(sac, progress = FALSE), "Unknown argument")
+  expect_true(all(compareModels(sac)$table$converged))
 })

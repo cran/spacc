@@ -10,13 +10,17 @@ spaccFunc(
   traits,
   metric = c("fdis", "fric"),
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL,
+  axis_length_k = NULL,
+  itv = FALSE
 )
 }
 \arguments{
@@ -32,11 +36,14 @@ spaccFunc(
 \item \code{"fric"}: Functional Richness (convex hull volume approximation)
 \item \code{"rao"}: Rao's quadratic entropy (abundance-weighted mean pairwise
 Euclidean trait distance)
+\item \code{"K"}: aggregated functional diversity (Wojcik et al. 2024), reported
+with its four facets as \code{k_richness}, \code{k_biomass_evenness},
+\code{k_trait_evenness}, \code{k_dispersion} and \code{K}
 }}
 
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{distance}{Character. Site distance method: \code{"euclidean"} or \code{"haversine"}.}
 
@@ -51,6 +58,19 @@ Euclidean trait distance)
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final values for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
+
+\item{axis_length_k}{Numeric vector, one value per trait. Length of each
+trait axis for the richness facet of \code{"K"}. Default \code{NULL} uses the
+range of each trait over all species in \code{traits}.}
+
+\item{itv}{Logical. Use intraspecific trait variability: \code{traits} is then
+a long data frame with one row per individual or population, a
+\code{species} column, an optional \code{site} column (matched like the sites of
+\code{\link[=spaccNetwork]{spaccNetwork()}}) and numeric trait columns. Default \code{FALSE}.}
 }
 \value{
 An object of class \code{spacc_func} containing:
@@ -68,7 +88,32 @@ Functional diversity metrics quantify trait space occupation:
 the community centroid in trait space. Captures functional divergence.
 \item \strong{FRic (Functional Richness)}: Volume of trait space occupied (convex hull).
 Requires more species than traits to compute.
+\item \strong{K (aggregated functional diversity)}: the geometric mean of four
+facets between 0 and 1, each equal to 1 when species are spread
+uniformly along the trait axis with equal abundances (Wojcik et al.
+2024). Per trait, with the \eqn{n} present species sorted by trait value
+and relative abundances \eqn{b_i}: functional richness is the trait
+range over the axis length; biomass evenness compares the \eqn{b_i} with
+\eqn{1/n}; trait evenness compares the gaps between neighbouring trait
+values with an even spacing; dispersion is the abundance-weighted trait
+variance over that of a uniform distribution on the same range, capped
+at 1. Several traits combine as the geometric mean over traits, and each
+reported facet is its geometric mean over traits. Trait evenness needs
+three species: with two, K is the cube root of the other three facets
+and \code{k_trait_evenness} is \code{NA}. With fewer than two species K is 0.
+With presence/absence data biomass evenness is 1.
 }
+
+\strong{Intraspecific trait variability} (\code{itv = TRUE}; Palacio et al. 2025).
+Each trait row is a unit of the community in place of a species: at each
+step the metrics are evaluated on the rows describing the accumulated
+sites, each weighted by its species' abundance at its site, shared equally
+among the rows describing that species there. Rows without a site (no
+\code{site} column, or \code{NA}) stand for the species at every site where it has
+no site-specific rows, so one row per species reproduces the species-mean
+curves. A widespread species whose traits change along a gradient then
+adds trait range as the accumulation reaches new parts of the gradient,
+which its mean trait value hides.
 }
 \examples{
 \donttest{
@@ -88,6 +133,16 @@ plot(func)
 \references{
 Laliberté, E. & Legendre, P. (2010). A distance-based framework for measuring
 functional diversity from multiple traits. Ecology, 91, 299-305.
+
+Palacio, F.X., Ottaviani, G., Mammola, S., Graco-Roza, C., de Bello, F. &
+Carmona, C.P. (2025). Integrating intraspecific trait variability in
+functional diversity: an overview of methods and a guide for ecologists.
+Ecological Monographs, 95, e70024. \doi{10.1002/ecm.70024}
+
+Wojcik, L.A., Gaedke, U., van Velzen, E. & Klauschies, T. (2024). Measuring
+overall functional diversity by aggregating its multiple facets: functional
+richness, biomass evenness, trait evenness and dispersion. Methods in
+Ecology and Evolution, 16, 215-227. \doi{10.1111/2041-210X.14470}
 }
 \seealso{
 \code{FD::dbFD()} for comprehensive functional diversity analysis

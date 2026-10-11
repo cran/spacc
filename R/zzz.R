@@ -17,28 +17,21 @@ utils::globalVariables(c(
   "distance", "i", "j", "metric", "q_label", "group", "n", "expected",
   ".data",
   # C++ functions from RcppExports.R
-  "calc_chiu_coverage", "calc_coverage", "calc_faith_pd", "calc_fdis", "calc_fric_approx",
-  "calc_hill_number", "calc_mntd", "calc_mpd",
-  "cpp_beta_knn_parallel", "cpp_beta_knn_single",
-  "cpp_collector_single", "cpp_cone_parallel", "cpp_cone_single",
-  "cpp_distance_decay_parallel", "cpp_distance_decay_single",
-  "cpp_distance_matrix",
-  "cpp_func_knn_parallel", "cpp_func_knn_single",
-  "cpp_gaussian_parallel", "cpp_gaussian_single",
-  "cpp_kncn_kdtree_parallel", "cpp_kncn_kdtree_single",
-  "cpp_kncn_metrics_parallel", "cpp_kncn_parallel", "cpp_kncn_single",
-  "cpp_knn_coverage_parallel", "cpp_knn_coverage_single",
-  "cpp_knn_hill_parallel", "cpp_knn_hill_single",
-  "cpp_knn_kdtree_parallel", "cpp_knn_kdtree_parallel_seeds", "cpp_knn_kdtree_single",
-  "cpp_knn_metrics_parallel", "cpp_knn_parallel", "cpp_knn_parallel_seeds", "cpp_knn_single",
-  "cpp_phylo_knn_parallel", "cpp_phylo_knn_single",
-  "cpp_radius_parallel", "cpp_radius_single",
-  "cpp_random_parallel", "cpp_random_single", "cpp_order_parallel",
-  "cpp_knn_order", "cpp_kncn_order", "calc_rao", "calc_rao_traits",
-  "cpp_wavefront_parallel", "cpp_wavefront_single",
+  "calc_chiu_coverage", "calc_coverage", "calc_evo_heritage", "calc_faith_pd",
+  "calc_hill_at_coverage", "calc_hill_at_size", "calc_hill_phylo",
+  "calc_hill_similarity", "calc_k_facets", "cpp_redundancy_order_parallel",
+  "cpp_area_along_orders", "calc_fdis", "calc_fric_approx",
+  "cpp_arc_draws", "cpp_arc_penalty", "cpp_arc_point",
+  "calc_hill_number", "calc_mntd", "calc_mpd", "calc_rao", "calc_rao_traits",
+  "cpp_beta_order_parallel",
+  "cpp_cone_order", "cpp_distance_matrix",
+  "cpp_focal_order", "cpp_func_order_parallel", "cpp_gaussian_order",
+  "cpp_kncn_order", "cpp_kncn_tree_order", "cpp_more_undetected",
+  "cpp_nn_walk_order", "cpp_nn_walk_tree_order",
+  "cpp_order_coverage_parallel", "cpp_order_hill_beta_parallel",
+  "cpp_order_hill_coverage_parallel", "cpp_order_hill_parallel",
+  "cpp_order_parallel", "cpp_phylo_order_parallel", "cpp_radius_parallel",
   "interpolate_at_coverage",
-  "cpp_knn_hill_coverage_parallel",
-  "cpp_knn_hill_beta_parallel",
   # ggplot2 aesthetics for new features
   "mean_area", "mean_diversity", "mean_endemism", "mean_richness",
   "endemism_lower", "endemism_upper", "type", "predicted",
@@ -62,8 +55,14 @@ utils::globalVariables(c(
   "eigenvalue", "moran_i", "vector", "r_squared", "score",
   # compareModels plot aesthetics
   "converged",
-  "model"
+  "model",
+  # extrapolate / extrapolateArea prediction bands
+  "fit", "n_sub", "richness_sd"
 ))
+
+
+# Null-coalescing helper (base R gained %||% in 4.4.0; define for R >= 3.5)
+`%||%` <- function(a, b) if (is.null(a)) b else a
 
 
 # Check for suggested packages
@@ -95,7 +94,7 @@ cli_success <- function(msg) {
 }
 
 # Internal ggplot2 theme: minimal with no grid, transparent background
-spacc_theme <- function(base_size = 12) {
+spacc_theme <- function(base_size = 19) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(
       panel.grid = ggplot2::element_blank()

@@ -2,18 +2,33 @@
 
 *species accumulating in the neighbourhood*
 
+[![CRAN status](https://www.r-pkg.org/badges/version/spacc)](https://CRAN.R-project.org/package=spacc)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/spacc)](https://cran.r-project.org/package=spacc)
+[![Monthly downloads](https://cranlogs.r-pkg.org/badges/spacc)](https://cran.r-project.org/package=spacc)
 [![R-CMD-check](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/gcol33/spacc/actions/workflows/R-CMD-check.yml)
-[![codecov](https://codecov.io/gh/gcol33/spacc/branch/main/graph/badge.svg)](https://app.codecov.io/gh/gcol33/spacc)
+[![Codecov test coverage](https://codecov.io/gh/gcol33/spacc/graph/badge.svg)](https://app.codecov.io/gh/gcol33/spacc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Spatial species accumulation curves built by nearest-neighbour expansion in C++.**
+**Spatial species accumulation curves built by fixed-focus expansion in C++.**
 
-Pick a starting site, then walk outward to its nearest neighbours, counting new species
-as you go. `spacc` does that from many starting points (Rcpp/RcppParallel backend), so the
-curve carries a confidence ribbon showing how richness depends on *where* you begin.
-The classical curve in `vegan::specaccum()` shuffles sites in random order and never sees
-the map. `spacc` reproduces that random-order curve and adds the spatial one, so you can
-read the gap between them.
+Sample a focal point in continuous space, rank every sampling unit by its distance from
+that point, then count new species along the ranking. `spacc` repeats this from many focal
+points (Rcpp/RcppParallel backend), so the curve carries a confidence ribbon showing how
+richness depends on *where* expansion begins.
+The classical curve in `vegan::specaccum()` shuffles sites in random order, without using
+their spatial arrangement. `spacc` reproduces that random-order curve and adds the spatial
+one, so you can read the gap between them.
+
+## Installation
+
+```r
+install.packages("spacc")            # CRAN
+
+install.packages("pak")              # development version
+pak::pak("gcol33/spacc")
+```
+
+## Quick start
 
 ```r
 library(spacc)
@@ -21,7 +36,7 @@ library(spacc)
 coords  <- data.frame(x = runif(100), y = runif(100))
 species <- matrix(rbinom(100 * 50, 1, 0.3), nrow = 100)
 
-# spatial accumulation: walk outward by nearest neighbour
+# spatial accumulation around continuous focal points
 sac <- spacc(species, coords, method = "knn", n_seeds = 100)
 plot(sac)
 ```
@@ -29,8 +44,8 @@ plot(sac)
 ## Spatial order, not random order
 
 `vegan::specaccum()` accumulates sites in random or collector order, so geography drops out.
-`spacc()` keeps it: each curve follows nearest-neighbour expansion from a real seed site, and
-the spread across seeds is the spatial signal. Run both and compare them directly.
+`spacc()` keeps it: each curve expands around a continuous focal point, and the spread
+across focal points is the spatial signal. Run both and compare them directly.
 
 ```r
 sac        <- spacc(species, coords, method = "knn",    n_seeds = 100)
@@ -40,14 +55,20 @@ comp <- compare(sac, sac_random)   # permutation, bootstrap, or AUC test
 plot(comp)
 ```
 
-Seven expansion methods are available: `knn` and `kncn` (nearest-neighbour and
-nearest-centroid walks), `radius`, `gaussian`, and `cone` (distance- and direction-weighted
-growth), `random` (the classical null), and `collector` (data order). Geographic coordinates
-use `distance = "haversine"` with no projection step.
+Seven expansion methods are available: `knn` (fixed-focus spatially constrained
+rarefaction), `kncn` (nearest-centroid expansion), `nn_walk` (a greedy nearest-neighbour
+traversal), `gaussian` and `cone` (distance- and direction-weighted growth), `random`
+(the classical null), and `collector` (data order). Geographic coordinates use
+`distance = "haversine"` with no projection step.
+
+By default, continuous focal points are sampled uniformly from the convex hull of the
+eligible sites. Pass an `sf` polygon through `focal_domain` when the study boundary is
+known, or pass exact coordinates through `focal_points` for reproducible focal definitions.
 
 ## Backend selection
 
-Nearest-neighbour queries pick a backend by site count, overridable with `backend`.
+The `nn_walk` and `kncn` methods pick a nearest-neighbour backend by site count,
+overridable with `backend`. Fixed-focus `knn` ranks distances directly.
 
 | Backend | Distance | Cost per query | When |
 |---|---|---|---|
@@ -88,12 +109,12 @@ Split species into groups (native vs alien, families, any factor) and accumulate
 the **same** spatial site ordering, or add a temporal axis to weight space against time.
 
 ```r
-# same spatial walk, separate curve per group
+# same spatial ordering, separate curve per group
 sac_grouped <- spacc(species, coords, groups = status, seed = 42)
 plot(sac_grouped, facet = TRUE)
 
 # sites sampled across years: weighted space-time distance
-sac_st <- spacc(species, coords, method = "knn",
+sac_st <- spacc(species, coords, method = "nn_walk",
                 time = site_years, w_space = 1, w_time = 0.5)
 ```
 
@@ -107,13 +128,6 @@ sac_st <- spacc(species, coords, method = "knn",
 - **`as_spacc()`**: bring an existing `vegan::specaccum()` object into the same plotting and
   comparison machinery.
 
-## Installation
-
-```r
-install.packages("pak")
-pak::pak("gcol33/spacc")
-```
-
 ## Documentation
 
 - [Getting Started](https://gillescolling.com/spacc/articles/quickstart.html)
@@ -123,6 +137,7 @@ pak::pak("gcol33/spacc")
 - [Community Assembly](https://gillescolling.com/spacc/articles/community-assembly.html)
 - [Richness Estimation](https://gillescolling.com/spacc/articles/richness-estimation.html)
 - [Rarefaction](https://gillescolling.com/spacc/articles/rarefaction-standardization.html)
+- [Methods and Algorithms](https://gillescolling.com/spacc/articles/theory.html)
 - [Function Reference](https://gillescolling.com/spacc/reference/)
 
 ## Support
@@ -145,10 +160,10 @@ MIT (see the LICENSE.md file)
 ## Citation
 
 ```bibtex
-@software{spacc,
-  author = {Colling, Gilles},
-  title = {spacc: Fast Spatial Species Accumulation Curves},
-  year = {2025},
-  url = {https://github.com/gcol33/spacc}
+@Manual{spacc,
+  author = {Gilles Colling},
+  title  = {spacc: Fast Spatial Species Accumulation Curves},
+  year   = {2026},
+  url    = {https://CRAN.R-project.org/package=spacc}
 }
 ```

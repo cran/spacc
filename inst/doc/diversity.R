@@ -2,11 +2,18 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----simulate-----------------------------------------------------------------
 library(spacc)
@@ -112,6 +119,16 @@ plot(beta) +
 ## ----beta-df------------------------------------------------------------------
 tail(as.data.frame(beta), 3)
 
+## ----beta-pool----------------------------------------------------------------
+band <- cut(coords$x, breaks = c(-Inf, 33, 66, Inf), labels = c("west", "centre", "east"))
+beta_pool <- spaccBeta(pa, coords, n_seeds = 20, progress = FALSE, pool = band)
+beta_pool
+
+## ----plot-beta-pool, fig.cap = "Beta partition between sites and between pooled bands."----
+plot(beta_pool, resolution = "both") +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
+
 ## ----hillbeta-----------------------------------------------------------------
 hb <- spaccHillBeta(species, coords, q = c(0, 1, 2), n_seeds = 15, progress = FALSE)
 hb
@@ -121,6 +138,21 @@ plot(hb, component = "beta") +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 
+## ----hillbeta-homog-----------------------------------------------------------
+set.seed(42)
+lambda <- rlnorm(80, -0.5, 1.3)
+homog <- matrix(rpois(60 * 80, rep(lambda, each = 60)), nrow = 60)
+homog_xy <- data.frame(x = runif(60, 0, 100), y = runif(60, 0, 100))
+
+hb_obs <- spaccHillBeta(homog, homog_xy, n_seeds = 15, progress = FALSE, seed = 1)
+hb_std <- spaccHillBeta(homog, homog_xy, n_seeds = 15, progress = FALSE, seed = 1,
+                        standardize = "coverage")
+at <- c(2, 10, 30, 60)
+drift <- rbind(observed = colMeans(hb_obs$beta$q0)[at],
+               standardised = colMeans(hb_std$beta$q0)[at])
+colnames(drift) <- paste(at, "sites")
+drift
+
 ## ----beta-func----------------------------------------------------------------
 # Simulate two continuous traits
 traits <- data.frame(
@@ -129,7 +161,7 @@ traits <- data.frame(
 )
 rownames(traits) <- colnames(species)
 
-beta_func <- spaccBetaFunc(pa, coords, traits, n_seeds = 20, progress = FALSE)
+beta_func <- spaccBeta(pa, coords, traits = traits, n_seeds = 20, progress = FALSE)
 
 ## ----plot-beta-func, fig.cap = "Functional beta diversity accumulation."------
 plot(beta_func) +
@@ -140,7 +172,7 @@ plot(beta_func) +
 library(ape)
 tree <- rcoal(n_species, tip.label = colnames(species))
 
-beta_phylo <- spaccBetaPhylo(pa, coords, tree, n_seeds = 20, progress = FALSE)
+beta_phylo <- spaccBeta(pa, coords, tree = tree, n_seeds = 20, progress = FALSE)
 
 ## ----plot-beta-phylo, fig.cap = "Phylogenetic beta diversity accumulation.", eval = requireNamespace("ape", quietly = TRUE)----
 plot(beta_phylo) +
@@ -157,6 +189,14 @@ plot(phylo_acc) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 
+## ----evoheritage, eval = requireNamespace("ape", quietly = TRUE)--------------
+evo_acc <- spaccPhylo(pa, coords, tree,
+                      metric = "evoheritage", rho = c(0, 0.5, 5),
+                      n_seeds = 20, progress = FALSE)
+evo_df <- summary(evo_acc)
+evo_df[evo_df$sites == max(evo_df$sites), c("metric", "mean", "lower", "upper")]
+sum(colSums(pa) > 0)   # observed richness
+
 ## ----func---------------------------------------------------------------------
 func_acc <- spaccFunc(species, coords, traits,
                       metric = c("fdis"),
@@ -167,9 +207,24 @@ plot(func_acc) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 
+## ----func-k-------------------------------------------------------------------
+func_k <- spaccFunc(species, coords, traits, metric = "K",
+                    n_seeds = 20, progress = FALSE)
+k_df <- summary(func_k)
+k_df[k_df$sites %in% c(1, 10, max(k_df$sites)), c("metric", "sites", "mean")]
+
 ## ----profile-func-------------------------------------------------------------
-fp <- diversityProfileFunc(species, traits, q = seq(0, 3, by = 0.5))
+fp <- diversityProfile(species, traits = traits, q = seq(0, 3, by = 0.5))
 fp
+
+## ----redundancy, eval = requireNamespace("ape", quietly = TRUE)---------------
+red <- spaccRedundancy(species, coords, tree = tree, n_seeds = 20, progress = FALSE)
+red
+
+## ----plot-redundancy, fig.cap = "Taxonomic over phylogenetic Hill number along accumulation.", eval = requireNamespace("ape", quietly = TRUE)----
+plot(red) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"))
 
 ## ----rao-phylo, eval = requireNamespace("ape", quietly = TRUE)----------------
 phylo_rao <- spaccPhylo(species, coords, tree,

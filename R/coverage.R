@@ -7,7 +7,8 @@
 #' @param x A site-by-species matrix with abundance data.
 #' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
+#' @param method Character. Accumulation method: canonical fixed-focus `"knn"`
+#'   or `"nn_walk"`. Default `"knn"`.
 #' @param distance Character. Distance method: `"euclidean"` or `"haversine"`.
 #' @param coverage Character. Coverage estimator to use: `"chao"` (default)
 #'   for the individual-based Chao & Jost (2012) estimator using
@@ -15,6 +16,10 @@
 #'   estimator using incidence frequency counts (Q1/Q2) and unique-species
 #'   abundance (G1). The Chiu estimator is recommended for spatially aggregated
 #'   data where sampling units are plots/sites rather than independent individuals.
+#' @param n_units Total number of sampling units in the study region, when the
+#'   sites are drawn without replacement from a finite set of units (atlas
+#'   cells, a plot network). Requires `coverage = "chiu"`. `NULL` (default) or
+#'   `Inf` assumes sampling with replacement. See Details.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
@@ -22,12 +27,16 @@
 #' @param map Logical. If `TRUE`, run accumulation from every site as seed
 #'   and store per-site final coverage and richness for spatial mapping. Enables
 #'   [as_sf()] and `plot(type = "map")`. Default `FALSE`.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_coverage` containing:
 #'   \item{richness}{Matrix of species richness (n_seeds x n_sites)}
 #'   \item{individuals}{Matrix of individual counts}
 #'   \item{coverage}{Matrix of coverage estimates}
+#'   \item{pooled}{Species abundances pooled over all sites}
 #'   \item{coverage_type}{Coverage estimator used (`"chao"` or `"chiu"`)}
+#'   \item{n_units}{Number of units in the finite population, or `NULL`}
 #'   \item{coords, n_seeds, n_sites, method}{Parameters used}
 #'
 #' @details
@@ -42,7 +51,22 @@
 #' The **Chiu (2023)** estimator uses incidence frequency counts instead:
 #' Q1 (species in exactly 1 site), Q2 (species in exactly 2 sites), and G1
 #' (total abundance of Q1 species). It gives near-unbiased coverage estimates
-#' when organisms are spatially aggregated across sampling units.
+#' when organisms are spatially aggregated across sampling units. It writes
+#' the abundance of undetected species as the Chao2 estimate of their number,
+#' \eqn{\frac{t-1}{t} \frac{Q_1^2}{2 Q_2}} after \eqn{t} sites, times the mean
+#' abundance of a unique species, \eqn{G_1 / Q_1}.
+#'
+#' With `n_units = T`, the \eqn{t} sites are a fraction \eqn{w = t / T} of a
+#' finite set of units drawn without replacement, and the number of undetected
+#' species is the MoRE term of `chao2(x, n_units = )` (Chiu 2023, Methods in
+#' Ecology and Evolution, Eq. 5),
+#' \deqn{\frac{t-1}{t} \frac{(1-w) Q_1^2}{Q_2 + w (Q_1 - Q_2)^+},}
+#' so richness and coverage of the same sample rest on one estimate of the
+#' undetected species. It vanishes at \eqn{w = 1}: the coverage reaches 1 once
+#' the accumulation has visited every unit. On simulated grids its error is
+#' lower than that of the with-replacement form from \eqn{w = 0.5} on, and
+#' several-fold lower near a census; it is about equal at \eqn{w = 0.3} and
+#' larger at \eqn{w = 0.1} on a sparse grid (`vignette("extrapolation")`).
 #'
 #' Coverage-based rarefaction allows fair comparison of diversity across
 #' communities with different abundances by standardizing to equal completeness
@@ -51,6 +75,10 @@
 #' @references
 #' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
 #' standardizing samples by completeness rather than size. Ecology, 93, 2533-2547.
+#'
+#' Chiu, C.-H. (2023). A species richness estimator for sample-based incidence
+#' data sampled without replacement. Methods in Ecology and Evolution, 14,
+#' 2482-2493. \doi{10.1111/2041-210X.14146}
 #'
 #' Chiu, C.-H. (2023). A sample-based estimator for sample coverage.
 #' Ecology, 104, e4099.
@@ -68,6 +96,9 @@
 #' # Sample-based coverage (recommended for spatial data)
 #' cov_chiu <- spaccCoverage(species, coords, coverage = "chiu")
 #'
+#' # The 50 sites are 80% of a 62-cell grid
+#' cov_grid <- spaccCoverage(species, coords, coverage = "chiu", n_units = 62)
+#'
 #' # Interpolate richness at 90% and 95% coverage
 #' interp <- interpolateCoverage(cov, target = c(0.90, 0.95))
 #' }
@@ -76,15 +107,19 @@
 spaccCoverage <- function(x,
                           coords,
                           n_seeds = 50L,
-                          method = "knn",
+                          method = c("knn", "nn_walk"),
                           distance = c("euclidean", "haversine"),
                           coverage = c("chao", "chiu"),
+                          n_units = NULL,
                           parallel = TRUE,
                           n_cores = NULL,
                           progress = TRUE,
                           seed = NULL,
-                          map = FALSE) {
+                          map = FALSE,
+                          focal_points = NULL,
+                          focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   coverage <- match.arg(coverage)
 
@@ -93,52 +128,44 @@ spaccCoverage <- function(x,
   n_cores <- resolve_cores(n_cores, parallel)
 
   x <- as.matrix(x)
-
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
-
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
   stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(x)
   n_species <- ncol(x)
-
-  # Need abundance data for coverage calculation
   storage.mode(x) <- "integer"
 
-  # Convert coverage type to integer for C++
-  coverage_type <- if (coverage == "chiu") 1L else 0L
+  n_units <- .finite_units(n_units, n_sites)
+  if (!is.null(n_units) && coverage != "chiu") {
+    stop("n_units requires coverage = \"chiu\"", call. = FALSE)
+  }
 
-  cov_label <- if (coverage == "chiu") "Chiu 2023" else "Chao-Jost 2012"
+  coverage_type <- if (coverage == "chiu") 1L else 0L
+  cov_label <- .coverage_label(coverage, n_units)
   if (progress) cli_info(sprintf("Computing coverage-based accumulation (%d seeds, %s)", n_seeds, cov_label))
 
-  result <- cpp_knn_coverage_parallel(x, dist_mat, n_seeds, n_cores, progress,
-                                      coverage_type)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
+  run <- function(orders) {
+    cpp_order_coverage_parallel(x, orders - 1L, coverage_type,
+                                if (is.null(n_units)) Inf else n_units, n_cores)
+  }
+  result <- run(ordering$orders)
 
   if (progress) cli_success("Done")
 
-  # Compute per-site map values if requested
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site coverage map values (all sites as seeds)")
-    map_result <- cpp_knn_coverage_parallel(x, dist_mat, n_sites, n_cores, progress,
-                                            coverage_type)
-
-    site_values <- data.frame(
-      site_id = seq_len(n_sites),
-      x = coord_data$x,
-      y = coord_data$y,
-      final_richness = map_result$richness[, n_sites],
-      final_coverage = map_result$coverage[, n_sites],
-      final_individuals = map_result$individuals[, n_sites]
-    )
+    site_values <- .site_map_values(method, coord_data, distance, site$dist_mat, n_cores,
+      function(orders) {
+        map_result <- run(orders)
+        list(final_richness = .final_per_seed(map_result$richness),
+             final_coverage = .final_per_seed(map_result$coverage),
+             final_individuals = .final_per_seed(map_result$individuals))
+      })
     if (progress) cli_success("Map values computed")
   }
 
@@ -147,18 +174,28 @@ spaccCoverage <- function(x,
       richness = result$richness,
       individuals = result$individuals,
       coverage = result$coverage,
+      pooled = colSums(x),
       coords = coord_data,
       site_values = site_values,
-      n_seeds = n_seeds,
+      n_seeds = ordering$n_seeds,
       n_sites = n_sites,
       n_species = n_species,
       method = method,
       distance = distance,
       coverage_type = coverage,
+      n_units = n_units,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_coverage"
   )
+}
+
+
+# Printed name of the coverage estimator.
+.coverage_label <- function(coverage, n_units = NULL) {
+  if (!identical(coverage, "chiu")) return("Chao-Jost 2012")
+  if (is.null(n_units)) "Chiu 2023" else sprintf("Chiu 2023, %s units", format(n_units))
 }
 
 
@@ -182,48 +219,48 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
   stopifnot(inherits(x, "spacc_coverage"))
   stopifnot(all(target >= 0 & target <= 1))
 
-  n_seeds <- x$n_seeds
-  result <- matrix(NA, nrow = n_seeds, ncol = length(target))
+  rows <- lapply(seq_len(x$n_seeds), function(s) {
+    interpolate_at_coverage(x$richness[s, ], x$coverage[s, ], target)
+  })
+  result <- matrix(unlist(rows), nrow = x$n_seeds, byrow = TRUE)
   colnames(result) <- paste0("C", target * 100)
-
-  for (s in 1:n_seeds) {
-    richness <- x$richness[s, ]
-    coverage <- x$coverage[s, ]
-
-    result[s, ] <- interpolate_at_coverage(richness, coverage, target)
-  }
-
   as.data.frame(result)
 }
 
 
-#' Extrapolate Richness Beyond Observed Coverage
+#' Extrapolate Diversity Beyond Observed Coverage
 #'
-#' Predict species richness at coverage levels beyond the empirical maximum,
-#' following the Chao et al. (2014) framework. Provides seamless
-#' interpolation and extrapolation as a function of sample coverage.
+#' Hill numbers at target sample coverages along a coverage-tracking
+#' accumulation, interpolated within the observed coverage and extrapolated
+#' beyond it (Chao et al. 2014).
 #'
-#' @param x A `spacc_coverage` object from [spaccCoverage()].
+#' @param x A `spacc_coverage` object from [spaccCoverage()] (richness,
+#'   `q = 0` only) or a `spacc_hill_coverage` object from
+#'   [spaccHillCoverage()] (any of its orders).
 #' @param target_coverage Numeric vector of target coverage levels (0 to 1).
 #'   Can exceed observed coverage for extrapolation. Default `c(0.90, 0.95, 0.99)`.
-#' @param q Numeric. Diversity order for extrapolation: 0 (richness, default),
-#'   1 (Shannon), or 2 (Simpson).
+#' @param q Numeric. Diversity order: 0 (richness, default), or for a
+#'   `spacc_hill_coverage` object one of its orders.
 #'
 #' @return An object of class `spacc_coverage_ext` containing:
-#'   \item{richness}{Matrix of interpolated/extrapolated richness (n_seeds x n_targets)}
+#'   \item{richness}{Matrix of interpolated/extrapolated Hill numbers of
+#'     order `q` (n_seeds x n_targets)}
 #'   \item{target_coverage}{Target coverage levels}
 #'   \item{q}{Diversity order used}
 #'   \item{observed_coverage}{Mean observed final coverage}
-#'   \item{observed_richness}{Mean observed final richness}
+#'   \item{observed_richness}{Mean observed final Hill number of order `q`}
 #'
 #' @details
-#' For targets within observed coverage, linear interpolation is used.
-#' For targets beyond observed coverage, asymptotic estimators are applied:
-#'
-#' - **q = 0**: Chao1 estimator: S_est = S_obs + f1^2 / (2 * f2), where f1/f2
-#'   are singleton/doubleton counts. Extrapolation via coverage deficit.
-#' - **q = 1**: Shannon extrapolation based on the Good-Turing frequency formula.
-#' - **q = 2**: Simpson extrapolation using the unbiased estimator.
+#' A target at or below a seed's final coverage is read off that seed's
+#' spatial accumulation curve by linear interpolation in coverage. Above it,
+#' every seed has accumulated the same pooled sample, so the value is the
+#' coverage-based extrapolation of the pooled abundances (Chao et al. 2014):
+#' the sample size reaching the target coverage is found from the
+#' Chao-Jost coverage deficit, and the Hill number at that size approaches
+#' the Chao1 (q = 0), Chao et al. (2013) Shannon (q = 1) or unbiased Simpson
+#' (q = 2) asymptote; `target_coverage = 1` gives the asymptote itself.
+#' Extrapolation is defined for integer `q` and for the individual-based
+#' coverage (`coverage = "chao"`).
 #'
 #' @references
 #' Chao, A. & Jost, L. (2012). Coverage-based rarefaction and extrapolation:
@@ -246,94 +283,43 @@ interpolateCoverage <- function(x, target = c(0.90, 0.95, 0.99)) {
 #'
 #' @export
 extrapolateCoverage <- function(x, target_coverage = c(0.90, 0.95, 0.99), q = 0) {
-  stopifnot(inherits(x, "spacc_coverage"))
+  stopifnot("x must be a spacc_coverage or spacc_hill_coverage object" =
+              inherits(x, c("spacc_coverage", "spacc_hill_coverage")))
   stopifnot(all(target_coverage >= 0 & target_coverage <= 1))
-  stopifnot(q %in% c(0, 1, 2))
+  stopifnot("q must be a single number" = is.numeric(q) && length(q) == 1)
 
-  n_seeds <- x$n_seeds
-  n_targets <- length(target_coverage)
+  curves <- if (inherits(x, "spacc_hill_coverage")) {
+    if (!q %in% x$q) stop(sprintf("q = %g is not among the orders of x (%s)",
+                                  q, paste(x$q, collapse = ", ")), call. = FALSE)
+    x$hills[[match(q, x$q)]]
+  } else {
+    if (q != 0) stop("a spacc_coverage object carries richness only (q = 0); ",
+                     "use spaccHillCoverage() for other orders", call. = FALSE)
+    x$richness
+  }
+  if (is.null(x$pooled)) stop("x was created by an older spacc version; recompute it",
+                              call. = FALSE)
 
-  result <- matrix(NA, nrow = n_seeds, ncol = n_targets)
-  colnames(result) <- paste0("C", target_coverage * 100)
-
-  for (s in seq_len(n_seeds)) {
-    richness_curve <- x$richness[s, ]
-    coverage_curve <- x$coverage[s, ]
-    indiv_curve <- x$individuals[s, ]
-
-    obs_S <- richness_curve[x$n_sites]
-    obs_C <- coverage_curve[x$n_sites]
-    obs_n <- indiv_curve[x$n_sites]
-
-    for (t in seq_len(n_targets)) {
-      tc <- target_coverage[t]
-
-      if (tc <= obs_C) {
-        # Interpolation
-        result[s, t] <- interpolate_at_coverage(
-          as.numeric(richness_curve), coverage_curve, tc
-        )
-      } else {
-        # Extrapolation beyond observed coverage
-        if (q == 0) {
-          # Chao1 asymptotic estimator
-          # Reconstruct frequency counts from the final cumulative abundances
-          # Use the relationship: deficit = S_est - S_obs
-          # Approximate f1, f2 from coverage formula
-          f1 <- max(1, round(obs_n * (1 - obs_C)))
-          f2 <- max(1, round(f1 * (f1 - 1) / (2 * obs_n * (1 - obs_C) + 1e-10) ))
-          if (f2 == 0) f2 <- 1
-
-          S_chao1 <- obs_S + f1^2 / (2 * f2)
-
-          # Extrapolation: S(C_target) = S_obs + f0_hat * (1 - ((1-tc)/(1-obs_C))^f1_ratio)
-          f0_hat <- S_chao1 - obs_S
-          if (f0_hat > 0 && obs_C < 1) {
-            ratio <- log(1 - tc) / log(1 - obs_C)
-            ratio <- min(ratio, 50)  # cap to avoid overflow
-            result[s, t] <- obs_S + f0_hat * (1 - exp(log(1 - f0_hat / (f0_hat + 1e-10)) * ratio))
-            # Simplified: linear approach for coverage near 1
-            if (tc >= 0.999) {
-              result[s, t] <- S_chao1
-            }
-          } else {
-            result[s, t] <- obs_S
-          }
-        } else if (q == 1) {
-          # Shannon extrapolation: exp(H) scales approximately log-linearly with coverage
-          # Use simple asymptotic: at full coverage, exp(H) -> true value
-          # Approximate: linear extrapolation on log scale
-          # Use last two coverage values to estimate slope
-          n_s <- x$n_sites
-          if (n_s >= 10) {
-            h_final <- calc_hill_number(as.numeric(indiv_curve), 1.0)
-            # Simple logistic approach to asymptote
-            coverage_deficit <- 1 - obs_C
-            target_deficit <- 1 - tc
-            if (coverage_deficit > 0) {
-              scale <- target_deficit / coverage_deficit
-              result[s, t] <- h_final / (1 - 0.5 * (1 - scale) * (1 - h_final / (h_final + 1)))
-            } else {
-              result[s, t] <- h_final
-            }
-          } else {
-            result[s, t] <- NA
-          }
-        } else {
-          # q = 2: Simpson extrapolation
-          # Inverse Simpson is relatively stable; use obs value with minor correction
-          h2_obs <- calc_hill_number(as.numeric(indiv_curve), 2.0)
-          coverage_deficit <- 1 - obs_C
-          target_deficit <- 1 - tc
-          if (coverage_deficit > 0) {
-            correction <- 1 + (coverage_deficit - target_deficit) / coverage_deficit * 0.1
-            result[s, t] <- h2_obs * correction
-          } else {
-            result[s, t] <- h2_obs
-          }
-        }
-      }
+  final_C <- x$coverage[, x$n_sites]
+  beyond <- outer(final_C, target_coverage, `<`)
+  if (any(beyond)) {
+    if (identical(x$coverage_type, "chiu")) {
+      stop("Extrapolation beyond the observed coverage uses the individual-based ",
+           "estimators; recompute with coverage = \"chao\"", call. = FALSE)
     }
+    if (q != round(q)) stop("Extrapolation is defined for integer q", call. = FALSE)
+  }
+  pooled <- calc_hill_at_coverage(as.numeric(x$pooled), target_coverage, q)$hill[1, ]
+
+  result <- matrix(NA_real_, nrow = x$n_seeds, ncol = length(target_coverage))
+  colnames(result) <- paste0("C", target_coverage * 100)
+  for (s in seq_len(x$n_seeds)) {
+    within <- !beyond[s, ]
+    if (any(within)) {
+      result[s, within] <- interpolate_at_coverage(as.numeric(curves[s, ]), x$coverage[s, ],
+                                                   target_coverage[within])
+    }
+    result[s, !within] <- pooled[!within]
   }
 
   structure(
@@ -341,9 +327,9 @@ extrapolateCoverage <- function(x, target_coverage = c(0.90, 0.95, 0.99), q = 0)
       richness = result,
       target_coverage = target_coverage,
       q = q,
-      observed_coverage = mean(x$coverage[, x$n_sites]),
-      observed_richness = mean(x$richness[, x$n_sites]),
-      n_seeds = n_seeds,
+      observed_coverage = mean(final_C),
+      observed_richness = mean(curves[, x$n_sites]),
+      n_seeds = x$n_seeds,
       spacc_coverage = x
     ),
     class = "spacc_coverage_ext"
@@ -385,112 +371,64 @@ summary.spacc_coverage_ext <- function(object, ...) {
 plot.spacc_coverage_ext <- function(x, ci = TRUE, ci_alpha = 0.2, ...) {
   check_suggests("ggplot2")
 
-  cov_obj <- x$spacc_coverage
-  summ_cov <- summary(cov_obj)
-
-  # Observed curve
+  summ_cov <- summary(x$spacc_coverage)
   df_obs <- data.frame(
     coverage = summ_cov$mean_coverage,
     richness = summ_cov$mean_richness,
     lower = summ_cov$richness_lower,
-    upper = summ_cov$richness_upper,
-    type = "Observed"
+    upper = summ_cov$richness_upper
   )
 
-  # Extrapolated points
   ext_summ <- summary(x)
   df_ext <- data.frame(
     coverage = x$target_coverage,
     richness = ext_summ$mean_richness,
     lower = ext_summ$lower,
-    upper = ext_summ$upper,
-    type = "Extrapolated"
+    upper = ext_summ$upper
   )
-
-  # Only keep extrapolated points beyond observed
   df_ext <- df_ext[df_ext$coverage > max(df_obs$coverage, na.rm = TRUE), , drop = FALSE]
 
-  df <- rbind(df_obs, df_ext)
-
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = coverage, y = richness))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      data = df[df$type == "Observed", ],
-      ggplot2::aes(ymin = lower, ymax = upper),
-      alpha = ci_alpha, fill = "#4CAF50"
-    )
-  }
-
-  p <- p +
-    ggplot2::geom_line(
-      data = df[df$type == "Observed", ],
-      linewidth = 1, color = "#2E7D32"
-    )
+  p <- .plot_curve(df_obs, x = "coverage", y = "richness",
+                   xlab = "Sample coverage", ylab = sprintf("Diversity (q = %d)", x$q),
+                   title = "Coverage-Based Extrapolation",
+                   subtitle = sprintf("Observed coverage: %.1f%%", x$observed_coverage * 100),
+                   ci = ci, ci_alpha = ci_alpha)
 
   if (nrow(df_ext) > 0) {
     p <- p +
-      ggplot2::geom_point(
-        data = df_ext,
-        color = "#FF9800", size = 3
-      ) +
-      ggplot2::geom_errorbar(
-        data = df_ext,
-        ggplot2::aes(ymin = lower, ymax = upper),
-        color = "#FF9800", width = 0.01
-      )
+      ggplot2::geom_point(data = df_ext, color = "#FF9800", size = 3) +
+      ggplot2::geom_errorbar(data = df_ext,
+                             ggplot2::aes(ymin = lower, ymax = upper),
+                             color = "#FF9800", width = 0.01)
   }
 
-  # Mark reference point
-  p <- p +
-    ggplot2::geom_vline(
-      xintercept = x$observed_coverage,
-      linetype = "dashed", color = "grey50"
-    ) +
-    ggplot2::labs(
-      x = "Sample coverage",
-      y = sprintf("Diversity (q = %d)", x$q),
-      title = "Coverage-Based Extrapolation",
-      subtitle = sprintf("Observed coverage: %.1f%%", x$observed_coverage * 100)
-    ) +
-    spacc_theme()
-
-  p
+  p + ggplot2::geom_vline(xintercept = x$observed_coverage,
+                          linetype = "dashed", color = "grey50")
 }
 
 
 #' @export
 print.spacc_coverage <- function(x, ...) {
-  cov_label <- if (!is.null(x$coverage_type) && x$coverage_type == "chiu") {
-    "Chiu 2023"
-  } else {
-    "Chao-Jost 2012"
-  }
-  cat(sprintf("spacc coverage (%s): %d sites, %d species, %d seeds\n",
-              cov_label, x$n_sites, x$n_species, x$n_seeds))
-
-  mean_final_cov <- mean(x$coverage[, x$n_sites])
-  mean_final_rich <- mean(x$richness[, x$n_sites])
-
-  cat(sprintf("Mean final coverage: %.1f%%\n", mean_final_cov * 100))
-  cat(sprintf("Mean final richness: %.1f species\n", mean_final_rich))
-  invisible(x)
+  cov_label <- .coverage_label(x$coverage_type, x$n_units)
+  .print_curves(x, sprintf("spacc coverage (%s)", cov_label),
+                sprintf("Mean final coverage: %.1f%%", mean(x$coverage[, x$n_sites]) * 100),
+                sprintf("Mean final richness: %.1f species", mean(x$richness[, x$n_sites])))
 }
 
 
 #' @export
 summary.spacc_coverage <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
-
+  richness <- .curve_stats(object$richness, ci_level)
+  coverage <- .curve_stats(object$coverage, ci_level)
   data.frame(
-    sites = 1:object$n_sites,
-    mean_richness = colMeans(object$richness),
-    richness_lower = apply(object$richness, 2, stats::quantile, alpha),
-    richness_upper = apply(object$richness, 2, stats::quantile, 1 - alpha),
+    sites = seq_len(object$n_sites),
+    mean_richness = richness$mean,
+    richness_lower = richness$lower,
+    richness_upper = richness$upper,
     mean_individuals = colMeans(object$individuals),
-    mean_coverage = colMeans(object$coverage),
-    coverage_lower = apply(object$coverage, 2, stats::quantile, alpha),
-    coverage_upper = apply(object$coverage, 2, stats::quantile, 1 - alpha)
+    mean_coverage = coverage$mean,
+    coverage_lower = coverage$lower,
+    coverage_upper = coverage$upper
   )
 }
 
@@ -504,52 +442,26 @@ plot.spacc_coverage <- function(x, type = c("curve", "map"),
   type <- match.arg(type)
 
   if (type == "map") {
-    if (is.null(x$site_values)) stop("No map data. Rerun spaccCoverage() with map = TRUE.")
     metric <- match.arg(metric)
-    return(plot_spatial_map(x$site_values, metric,
-                            title = sprintf("Coverage map: %s", metric),
-                            subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
-                            point_size = point_size, palette = palette))
+    return(.plot_site_map(x, metric,
+                          title = sprintf("Coverage map: %s", metric),
+                          subtitle = sprintf("%d sites, %s method", x$n_sites, x$method),
+                          point_size = point_size, palette = palette))
   }
-
-  check_suggests("ggplot2")
 
   xaxis <- match.arg(xaxis)
-  summ <- summary(x)
-
-  if (xaxis == "sites") {
-    summ$x <- summ$sites
-    xlab <- "Sites accumulated"
-  } else if (xaxis == "coverage") {
-    summ$x <- summ$mean_coverage
-    xlab <- "Sample coverage"
-  } else {
-    summ$x <- summ$mean_individuals
-    xlab <- "Individuals sampled"
-  }
-
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = x, y = mean_richness))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = richness_lower, ymax = richness_upper),
-      alpha = ci_alpha, fill = "#4CAF50"
-    )
-  }
-
-  p +
-    ggplot2::geom_line(linewidth = 1, color = "#2E7D32") +
-    ggplot2::labs(
-      x = xlab,
-      y = "Species richness",
-      title = "Coverage-Based Spatial Accumulation"
-    ) +
-    spacc_theme()
+  axis <- switch(xaxis,
+    sites = c("sites", "Sites accumulated"),
+    coverage = c("mean_coverage", "Sample coverage"),
+    individuals = c("mean_individuals", "Individuals sampled")
+  )
+  .plot_curve(summary(x), x = axis[1], y = "mean_richness",
+              lower = "richness_lower", upper = "richness_upper",
+              xlab = axis[2], ylab = "Species richness",
+              title = "Coverage-Based Spatial Accumulation",
+              ci = ci, ci_alpha = ci_alpha)
 }
 
 
 #' @export
-as_sf.spacc_coverage <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No map data. Rerun spaccCoverage() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_coverage <- function(x, crs = NULL) .as_sf_site_values(x, crs)

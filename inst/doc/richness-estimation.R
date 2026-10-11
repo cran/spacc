@@ -2,11 +2,18 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----data---------------------------------------------------------------------
 library(spacc)
@@ -65,6 +72,16 @@ ich <- rbind(
 ich$gap_to_truth <- S_true - ich$estimate
 ich
 
+## ----arc----------------------------------------------------------------------
+r_arc <- arc(species, n_boot = 0)
+r_arc
+r_arc$details$undetected
+r_arc$details$weights
+
+## ----arc-interval, eval = FALSE-----------------------------------------------
+# set.seed(2)
+# arc(species, n_boot = 200)
+
 ## ----convergence--------------------------------------------------------------
 effort <- c(10, 20, 30, 40, 50, 60, 70, 80)
 conv <- do.call(rbind, lapply(effort, function(k) {
@@ -87,6 +104,7 @@ ggplot(conv, aes(sites)) +
   geom_hline(yintercept = S_true, linetype = "dashed") +
   labs(x = "Sampling units", y = "Richness",
        title = "Chao1 estimate (green) and observed count (grey) vs effort") +
+  theme_minimal(base_size = 17) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 

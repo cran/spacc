@@ -2,11 +2,18 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----simulate-----------------------------------------------------------------
 library(spacc)
@@ -46,15 +53,17 @@ ggplot(sac_df, aes(sites, mean)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "#4CAF50") +
   geom_line(linewidth = 1, colour = "#2E7D32") +
   labs(x = "Sites", y = "Cumulative species") +
+  theme_minimal(base_size = 17) +
   theme(panel.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent"))
 
 ## ----compare-methods----------------------------------------------------------
 sac_kncn <- spacc(species, coords, n_seeds = 30, method = "kncn", progress = FALSE)
+sac_walk <- spacc(species, coords, n_seeds = 30, method = "nn_walk", progress = FALSE)
 sac_rand <- spacc(species, coords, n_seeds = 30, method = "random", progress = FALSE)
 
-## ----combine, fig.cap = "kNN, kNCN, and random accumulation compared."--------
-combined <- c(knn = sac, kncn = sac_kncn, random = sac_rand)
+## ----combine, fig.cap = "Fixed-focus kNN, kNCN, nearest-neighbour walk, and random accumulation."----
+combined <- c(knn = sac, kncn = sac_kncn, nn_walk = sac_walk, random = sac_rand)
 plot(combined)
 
 ## ----custom-order-------------------------------------------------------------

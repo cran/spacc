@@ -2,10 +2,11 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
 
 ## ----theme-helper, include = FALSE--------------------------------------------
@@ -15,6 +16,12 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     plot.background = ggplot2::element_rect(fill = "transparent", color = NA)
   )
 }
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----data---------------------------------------------------------------------
 library(spacc)
@@ -74,7 +81,8 @@ df <- rbind(
 )
 ggplot2::ggplot(df, ggplot2::aes(sites, S, color = kind)) +
   ggplot2::geom_line(linewidth = 0.9) +
-  ggplot2::labs(x = "Sites", y = "Species", color = NULL) + transparent
+  ggplot2::labs(x = "Sites", y = "Species", color = NULL) +
+  ggplot2::theme_minimal(base_size = 17) + transparent
 
 ## ----coverage, eval = requireNamespace("ggplot2", quietly = TRUE)-------------
 cov_result <- spaccCoverage(species, coords, n_seeds = 30, progress = FALSE)
@@ -123,7 +131,8 @@ df_thin <- transform(as.data.frame(thin), set = "Thinned (grid)")
 ggplot2::ggplot(rbind(df_full, df_thin),
                 ggplot2::aes(sites, mean, color = set)) +
   ggplot2::geom_line(linewidth = 1) +
-  ggplot2::labs(x = "Sites", y = "Species", color = NULL) + transparent
+  ggplot2::labs(x = "Sites", y = "Species", color = NULL) +
+  ggplot2::theme_minimal(base_size = 17) + transparent
 
 ## ----spatial-rare-------------------------------------------------------------
 sr <- spatialRarefaction(species, coords, n_perm = 50)

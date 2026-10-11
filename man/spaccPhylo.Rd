@@ -9,14 +9,17 @@ spaccPhylo(
   coords,
   tree,
   metric = c("mpd", "mntd"),
+  rho = 0,
   n_seeds = 50L,
-  method = "knn",
+  method = c("knn", "nn_walk"),
   distance = c("euclidean", "haversine"),
   parallel = TRUE,
   n_cores = NULL,
   progress = TRUE,
   seed = NULL,
-  map = FALSE
+  map = FALSE,
+  focal_points = NULL,
+  focal_domain = NULL
 )
 }
 \arguments{
@@ -32,14 +35,20 @@ a pairwise phylogenetic distance matrix.}
 \item \code{"mpd"}: Mean Pairwise Distance
 \item \code{"mntd"}: Mean Nearest Taxon Distance
 \item \code{"pd"}: Faith's Phylogenetic Diversity (requires tree, not distance matrix)
+\item \code{"evoheritage"}: EvoHeritage (Rosindell et al. 2024), PD with
+attrition of evolutionary heritage at rate \code{rho} (requires tree)
 \item \code{"rao"}: Rao's quadratic entropy (abundance-weighted mean pairwise
 phylogenetic distance). Pass abundance data for weighting; with
 presence/absence it reduces to the equal-weight form.
 }}
 
+\item{rho}{Non-negative numeric vector. Attrition rate(s) for
+\code{"evoheritage"}, per unit of branch length. \code{rho = 0} gives Faith's PD.
+Several values give one curve each, named \verb{evoheritage_rho<value>}.}
+
 \item{n_seeds}{Integer. Number of random starting points. Default 50.}
 
-\item{method}{Character. Accumulation method. Default \code{"knn"}.}
+\item{method}{Character. Accumulation method: \code{"knn"} or \code{"nn_walk"}.}
 
 \item{distance}{Character. Site distance method: \code{"euclidean"} or \code{"haversine"}.}
 
@@ -54,11 +63,16 @@ presence/absence it reduces to the equal-weight form.
 \item{map}{Logical. If \code{TRUE}, run accumulation from every site as seed
 and store per-site final values for spatial mapping. Enables
 \code{\link[=as_sf]{as_sf()}} and \code{plot(type = "map")}. Default \code{FALSE}.}
+
+\item{focal_points}{Optional focal points for \code{method = "knn"}. See \code{\link[=spacc]{spacc()}}.}
+
+\item{focal_domain}{Optional polygonal focal domain. See \code{\link[=spacc]{spacc()}}.}
 }
 \value{
 An object of class \code{spacc_phylo} containing:
 \item{curves}{Named list of matrices, one per metric (n_seeds x n_sites)}
 \item{metric}{Metrics computed}
+\item{tree}{The tree or distance matrix used}
 \item{coords, n_seeds, n_sites, method}{Parameters used}
 }
 \description{
@@ -72,8 +86,18 @@ all pairs of species. Sensitive to tree-wide patterns.
 \item \strong{MNTD (Mean Nearest Taxon Distance)}: Average distance to closest
 relative. Sensitive to terminal clustering.
 \item \strong{PD (Faith's Phylogenetic Diversity)}: Total branch length connecting
-species. Requires full tree object.
+species to the root. Requires full tree object.
+\item \strong{EvoHeritage}: Features accumulate along each branch and are lost at
+rate \code{rho}, so a branch of length \code{L} passes on a fraction \code{exp(-rho * L)}
+of what entered it. A feature counts once if it survives to at least one
+present species. The value is in standardised units (the heritage at the
+end of a single branch of unit length), so \code{rho = 0} gives PD and large
+\code{rho} tends to species richness. Scanning \code{rho} places a community
+between its richness and PD curves.
 }
+
+Tree-based metrics match the columns of \code{x} to \code{tree$tip.label} by name;
+the tree may contain species absent from \code{x}.
 }
 \examples{
 \donttest{
@@ -94,6 +118,11 @@ if (requireNamespace("ape", quietly = TRUE)) {
 \references{
 Faith, D.P. (1992). Conservation evaluation and phylogenetic diversity.
 Biological Conservation, 61, 1-10.
+
+Rosindell, J., Manson, K., Gumbs, R., Pearse, W.D. & Steel, M. (2024).
+Phylogenetic biodiversity metrics should account for both accumulation and
+attrition of evolutionary heritage. Systematic Biology, 73, 158-182.
+\doi{10.1093/sysbio/syad072}
 
 Webb, C.O. (2000). Exploring the phylogenetic structure of ecological
 communities: an example for rain forest trees. American Naturalist, 156, 145-155.

@@ -2,10 +2,11 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
 
 ## ----transparent, include = FALSE---------------------------------------------
@@ -17,6 +18,12 @@ transparent <- if (requireNamespace("ggplot2", quietly = TRUE)) {
 } else {
   NULL
 }
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----simulate-----------------------------------------------------------------
 library(spacc)
@@ -121,7 +128,7 @@ part
 plot(part) + transparent
 
 ## ----wavefront----------------------------------------------------------------
-wf <- wavefront(species, coords, n_seeds = 20, n_steps = 40,
+wf <- spaccWavefront(species, coords, n_seeds = 20, n_steps = 40,
                 progress = FALSE, seed = 1)
 wf
 

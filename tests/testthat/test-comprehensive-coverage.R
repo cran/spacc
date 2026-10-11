@@ -240,7 +240,7 @@ test_that("spaccPhylo warns when PD requested with distance matrix", {
     spaccPhylo(species, coords, phylo_dist,
                metric = c("pd", "mpd"), n_seeds = 3,
                parallel = FALSE, progress = FALSE, seed = 1),
-    "PD requires"
+    "requires a full tree"
   )
 })
 
@@ -593,7 +593,7 @@ test_that("spaccBeta plot without partition shows total only", {
 })
 
 
-test_that("spaccBetaFunc with spacc_dist coords", {
+test_that("spaccBeta functional with spacc_dist coords", {
   skip_on_cran()
 
   set.seed(42)
@@ -602,14 +602,14 @@ test_that("spaccBetaFunc with spacc_dist coords", {
   traits <- matrix(rnorm(8 * 3), nrow = 8)
 
   d <- distances(coords)
-  result <- spaccBetaFunc(species, d, traits, n_seeds = 3,
-                           parallel = FALSE, progress = FALSE, seed = 1)
+  result <- spaccBeta(species, d, traits = traits, n_seeds = 3,
+                      parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_beta")
 })
 
 
-test_that("spaccBetaPhylo with spacc_dist coords", {
+test_that("spaccBeta phylogenetic with spacc_dist coords", {
   skip_on_cran()
 
   set.seed(42)
@@ -621,8 +621,8 @@ test_that("spaccBetaPhylo with spacc_dist coords", {
   diag(phylo_dist) <- 0
 
   d <- distances(coords)
-  result <- spaccBetaPhylo(species, d, phylo_dist, n_seeds = 3,
-                            parallel = FALSE, progress = FALSE, seed = 1)
+  result <- spaccBeta(species, d, tree = phylo_dist, n_seeds = 3,
+                      parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc_beta")
 })
@@ -758,7 +758,7 @@ test_that("wavefront summary returns data.frame", {
   coords <- data.frame(x = runif(15), y = runif(15))
   species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
 
-  result <- wavefront(species, coords, n_seeds = 3, n_steps = 8,
+  result <- spaccWavefront(species, coords, n_seeds = 3, n_steps = 8,
                       progress = FALSE, seed = 1)
 
   summ <- summary(result)
@@ -774,7 +774,7 @@ test_that("wavefront plot returns ggplot", {
   coords <- data.frame(x = runif(15), y = runif(15))
   species <- matrix(rbinom(15 * 8, 1, 0.3), nrow = 15)
 
-  result <- wavefront(species, coords, n_seeds = 3, n_steps = 8,
+  result <- spaccWavefront(species, coords, n_seeds = 3, n_steps = 8,
                       progress = FALSE, seed = 1)
 
   p <- plot(result)
@@ -863,18 +863,18 @@ test_that("spacc with collector method works", {
 })
 
 
-test_that("spacc with radius method works", {
+test_that("spacc with nn_walk method works", {
   skip_on_cran()
 
   set.seed(42)
   coords <- data.frame(x = runif(20), y = runif(20))
   species <- matrix(rbinom(20 * 10, 1, 0.3), nrow = 20)
 
-  result <- spacc(species, coords, n_seeds = 3, method = "radius",
+  result <- spacc(species, coords, n_seeds = 3, method = "nn_walk",
                   parallel = FALSE, progress = FALSE, seed = 1)
 
   expect_s3_class(result, "spacc")
-  expect_equal(result$method, "radius")
+  expect_equal(result$method, "nn_walk")
 })
 
 
@@ -1243,12 +1243,13 @@ test_that("spacc_alpha plot histogram works", {
 })
 
 
-test_that("spacc_alpha as_sf errors without coords", {
+test_that("alphaDiversity without coords returns a plain data frame", {
   species <- matrix(rpois(50 * 30, 2), nrow = 50)
   result <- alphaDiversity(species, q = c(0, 1))
 
-  # result is data.frame, not spacc_alpha - this should work differently
-  # The as_sf method is for spacc_alpha objects with coords
+  expect_s3_class(result, "data.frame")
+  expect_false(inherits(result, "spacc_alpha"))
+  expect_equal(nrow(result), 50)
 })
 
 

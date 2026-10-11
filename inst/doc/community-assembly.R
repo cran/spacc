@@ -2,10 +2,11 @@
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
+  fig.width = 6.5,
   fig.height = 5,
   dev = "svglite",
-  fig.ext = "svg"
+  fig.ext = "svg",
+  dev.args = list(pointsize = 14)
 )
 
 ## ----transparent, include = FALSE---------------------------------------------
@@ -15,6 +16,12 @@ transparent <- if (requireNamespace("ggplot2", quietly = TRUE)) {
     plot.background  = ggplot2::element_rect(fill = "transparent", colour = NA)
   )
 } else NULL
+
+## ----eval = FALSE-------------------------------------------------------------
+# install.packages("spacc")            # CRAN
+# 
+# install.packages("pak")              # development version
+# pak::pak("gcol33/spacc")
 
 ## ----data---------------------------------------------------------------------
 library(spacc)

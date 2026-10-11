@@ -1,29 +1,43 @@
 #' Diversity-Area Relationship (DAR)
 #'
-#' Extend the classic species-area relationship (SAR) to a diversity-area
-#' relationship using Hill numbers of any order q. Instead of plotting species
-#' richness vs. sites, this plots effective diversity vs. cumulative area.
+#' Diversity against cumulative area along a spatial accumulation, for Hill
+#' numbers (Ma 2018) or for any curve spacc computes: species richness,
+#' phylogenetic and functional metrics, redundancy.
 #'
-#' @param x A site-by-species matrix (abundance data recommended).
-#' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist` object.
-#' @param q Numeric vector. Diversity orders. Default `c(0, 1, 2)`.
+#' @param x A site-by-species matrix (abundance data recommended), or a
+#'   curve object: `spacc`, `spacc_hill`, `spacc_phylo`, `spacc_func` or
+#'   `spacc_redundancy`. A matrix is first passed to [spaccHill()] with `q`.
+#' @param coords A data.frame with columns `x` and `y`, or a `spacc_dist`
+#'   object (matrix input only).
+#' @param q Numeric vector. Diversity orders (matrix input only). Default
+#'   `c(0, 1, 2)`.
 #' @param n_seeds Integer. Number of random starting points. Default 50.
-#' @param method Character. Accumulation method. Default `"knn"`.
-#' @param area_method Character. How to estimate cumulative area:
-#'   `"voronoi"` (Voronoi tessellation, requires sf), `"convex_hull"`
-#'   (convex hull of accumulated sites, requires sf), or `"count"`
-#'   (use site count as proxy, no dependencies). Default `"convex_hull"`.
+#' @param method Character. Accumulation method: `"knn"` or `"nn_walk"`.
+#' @param area_method Character. How to measure the area covered by the first
+#'   k sites of an order: `"convex_hull"` (area of their convex hull, 0 until
+#'   three sites span a polygon), `"voronoi"` (summed area of their Voronoi
+#'   cells within the bounding box of all sites) or `"count"` (number of
+#'   sites). Areas are in squared coordinate units. Default `"convex_hull"`.
 #' @param distance Character. Distance method. Default `"euclidean"`.
 #' @param parallel Logical. Use parallel processing? Default `TRUE`.
 #' @param n_cores Integer. Number of cores.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
+#' @param ... Arguments passed to methods.
 #'
 #' @return An object of class `spacc_dar` containing:
-#'   \item{hill}{A `spacc_hill` object with diversity curves}
+#'   \item{curves}{Named list of diversity curves (n_seeds x n_sites), one per
+#'     metric or order}
+#'   \item{metric}{Names of the curves}
 #'   \item{area}{Matrix of cumulative areas (n_seeds x n_sites)}
-#'   \item{q}{Diversity orders used}
+#'   \item{power_law}{Data frame with the power-law fit \eqn{D = c A^z} of
+#'     each mean curve (`metric`, `c`, `z`)}
+#'   \item{q}{Diversity orders for Hill-number input, else `NULL`}
 #'   \item{area_method}{Method used for area estimation}
+#'   \item{source}{Class of the curve object the DAR was built from}
+#'   \item{object}{That curve object}
 #'
 #' @details
 #' The DAR (Ma, 2018) generalizes the SAR by replacing species richness (q=0)
@@ -33,6 +47,13 @@
 #' - q=1 (Shannon) shows how common species diversity scales
 #' - q=2 (Simpson) shows how dominant species diversity scales
 #'
+#' The area is accumulated along the same site orders as the diversity curve,
+#' so any curve object gives its own diversity-area relationship: functional
+#' richness, dispersion and other facets can scale with area differently from
+#' richness (Dias et al. 2025). The power-law exponent `z` is the slope of
+#' log mean diversity against log mean area over the steps where both are
+#' positive.
+#'
 #' @references
 #' Ma, Z.S. (2018). DAR (diversity-area relationship): extending classic SAR
 #' for biodiversity and biogeography analyses. Ecology and Evolution, 8,
@@ -40,121 +61,137 @@
 #'
 #' Arrhenius, O. (1921). Species and area. Journal of Ecology, 9, 95-99.
 #'
-#' @seealso [spaccHill()], [extrapolate()]
+#' Dias, R.A., Bastazini, V.A.G., Gianuca, A.T. & Matthews, T.J. (2025). The
+#' spatial scaling of multiple dimensions of functional diversity in habitat
+#' islands. Functional Ecology. \doi{10.1111/1365-2435.70158}
+#'
+#' @seealso [spaccHill()], [spaccFunc()], [spaccPhylo()], [extrapolate()]
 #'
 #' @examples
 #' \donttest{
 #' coords <- data.frame(x = runif(50), y = runif(50))
 #' species <- matrix(rpois(50 * 30, 2), nrow = 50)
 #'
-#' dar <- dar(species, coords, q = c(0, 1, 2))
-#' plot(dar)
+#' d <- dar(species, coords, q = c(0, 1, 2))
+#' plot(d)
+#'
+#' traits <- matrix(rnorm(30 * 2), nrow = 30)
+#' func <- spaccFunc(species, coords, traits, metric = c("fdis", "fric"))
+#' dar(func)
 #' }
 #'
 #' @export
-dar <- function(x,
-                coords,
-                q = c(0, 1, 2),
-                n_seeds = 50L,
-                method = "knn",
-                area_method = c("convex_hull", "voronoi", "count"),
-                distance = c("euclidean", "haversine"),
-                parallel = TRUE,
-                n_cores = NULL,
-                progress = TRUE,
-                seed = NULL) {
+dar <- function(x, ...) UseMethod("dar")
 
+
+#' @rdname dar
+#' @export
+dar.default <- function(x,
+                        coords,
+                        q = c(0, 1, 2),
+                        n_seeds = 50L,
+                        method = "knn",
+                        area_method = c("convex_hull", "voronoi", "count"),
+                        distance = c("euclidean", "haversine"),
+                        parallel = TRUE,
+                        n_cores = NULL,
+                        progress = TRUE,
+                        seed = NULL,
+                        focal_points = NULL,
+                        focal_domain = NULL,
+                        ...) {
   area_method <- match.arg(area_method)
   distance <- match.arg(distance)
-
-  if (!is.null(seed)) set.seed(seed)
-
-  # First, compute Hill number accumulation
   hill_obj <- spaccHill(x, coords, q = q, n_seeds = n_seeds,
-                         method = method, distance = distance,
-                         parallel = parallel, n_cores = n_cores,
-                         progress = progress, seed = seed)
+                        method = method, distance = distance,
+                        parallel = parallel, n_cores = n_cores,
+                        progress = progress, seed = seed,
+                        focal_points = focal_points,
+                        focal_domain = focal_domain)
+  dar(hill_obj, area_method = area_method)
+}
 
-  # Get coordinate data
-  if (inherits(coords, "spacc_dist")) {
-    coord_data <- attr(coords, "coords")
-  } else {
-    coord_data <- coords
-  }
 
-  n_sites <- nrow(coord_data)
+#' @rdname dar
+#' @export
+dar.spacc <- function(x, area_method = c("convex_hull", "voronoi", "count"), ...) {
+  if (is_grouped(x)) stop("dar() needs an ungrouped spacc object", call. = FALSE)
+  .dar_build(x, list(richness = x$curves), match.arg(area_method))
+}
 
-  # Compute cumulative area for each seed
-  # We need the site visit order for each seed, but spaccHill doesn't return it.
-  # Estimate area based on the knn ordering from coordinates.
+
+#' @rdname dar
+#' @export
+dar.spacc_hill <- function(x, area_method = c("convex_hull", "voronoi", "count"), ...) {
+  .dar_build(x, x$curves, match.arg(area_method), q = x$q)
+}
+
+
+#' @rdname dar
+#' @export
+dar.spacc_phylo <- function(x, area_method = c("convex_hull", "voronoi", "count"), ...) {
+  .dar_build(x, x$curves, match.arg(area_method))
+}
+
+
+#' @rdname dar
+#' @export
+dar.spacc_func <- function(x, area_method = c("convex_hull", "voronoi", "count"), ...) {
+  .dar_build(x, x$curves, match.arg(area_method))
+}
+
+
+#' @rdname dar
+#' @export
+dar.spacc_redundancy <- function(x, area_method = c("convex_hull", "voronoi", "count"), ...) {
+  .dar_build(x, x$curves, match.arg(area_method), q = x$q)
+}
+
+
+# Cumulative area of the first k sites along each order (n_orders x n_sites).
+.cumulative_area <- function(coords, orders, area_method) {
   if (area_method == "count") {
-    # Simple: area = site count (proxy)
-    area <- matrix(rep(seq_len(n_sites), each = n_seeds),
-                   nrow = n_seeds, ncol = n_sites)
-  } else {
-    if (area_method %in% c("convex_hull", "voronoi")) {
-      check_suggests("sf")
-    }
-
-    # Recompute knn orderings to get site visit sequences
-    if (inherits(coords, "spacc_dist")) {
-      dist_mat <- as.matrix(coords)
-    } else {
-      dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-    }
-
-    n_cores_use <- resolve_cores(n_cores, parallel)
-
-    area <- matrix(NA, nrow = n_seeds, ncol = n_sites)
-
-    for (s in seq_len(n_seeds)) {
-      # Reproduce the knn visit order
-      seed_idx <- sample(n_sites, 1) - 1L
-      visited <- logical(n_sites)
-      visit_order <- integer(n_sites)
-      current <- seed_idx + 1L
-      visited[current] <- TRUE
-      visit_order[1] <- current
-
-      for (step in 2:n_sites) {
-        dists <- dist_mat[current, ]
-        dists[visited] <- Inf
-        next_site <- which.min(dists)
-        visited[next_site] <- TRUE
-        visit_order[step] <- next_site
-        current <- next_site
-      }
-
-      # Compute cumulative area
-      area[s, 1] <- 0
-      for (k in 2:n_sites) {
-        pts <- coord_data[visit_order[1:k], ]
-        if (area_method == "convex_hull" && k >= 3) {
-          pts_sf <- sf::st_as_sf(pts, coords = c("x", "y"))
-          hull <- sf::st_convex_hull(sf::st_union(pts_sf))
-          area[s, k] <- as.numeric(sf::st_area(hull))
-        } else {
-          # For <3 points or voronoi fallback, use bounding box area
-          x_range <- diff(range(pts$x))
-          y_range <- diff(range(pts$y))
-          area[s, k] <- x_range * y_range
-        }
-      }
-    }
+    return(matrix(rep(seq_len(ncol(orders)), each = nrow(orders)), nrow = nrow(orders)))
   }
+  cpp_area_along_orders(as.numeric(coords$x), as.numeric(coords$y), orders - 1L, area_method)
+}
 
-  if (progress) cli_success("DAR computed")
 
+# Power-law fit D = c A^z to a mean diversity curve against mean area.
+.power_law <- function(area, diversity) {
+  keep <- is.finite(area) & is.finite(diversity) & area > 0 & diversity > 0
+  if (sum(keep) < 3) return(c(c = NA_real_, z = NA_real_))
+  fit <- stats::lm(log(diversity[keep]) ~ log(area[keep]))
+  c(c = exp(unname(stats::coef(fit)[1])), z = unname(stats::coef(fit)[2]))
+}
+
+
+.dar_build <- function(obj, curves, area_method, q = NULL) {
+  if (is.null(obj$orders) || is.null(obj$coords)) {
+    stop("This object carries no site orders; recompute it with the current spacc",
+         call. = FALSE)
+  }
+  area <- .cumulative_area(obj$coords, obj$orders, area_method)
+  mean_area <- colMeans(area)
+  fits <- lapply(curves, function(m) .power_law(mean_area, colMeans(m)))
+  power_law <- data.frame(metric = names(curves),
+                          c = vapply(fits, function(f) f[["c"]], numeric(1)),
+                          z = vapply(fits, function(f) f[["z"]], numeric(1)),
+                          row.names = NULL)
   structure(
     list(
-      hill = hill_obj,
+      curves = curves,
+      metric = names(curves),
       area = area,
+      power_law = power_law,
       q = q,
       area_method = area_method,
-      coords = coord_data,
-      n_seeds = n_seeds,
-      n_sites = n_sites,
-      method = method
+      source = class(obj)[1],
+      object = obj,
+      coords = obj$coords,
+      n_seeds = nrow(area),
+      n_sites = ncol(area),
+      method = obj$method
     ),
     class = "spacc_dar"
   )
@@ -163,65 +200,53 @@ dar <- function(x,
 
 #' @export
 print.spacc_dar <- function(x, ...) {
-  cat(sprintf("spacc DAR: %d sites, %d seeds\n", x$n_sites, x$n_seeds))
-  cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
+  cat(sprintf("spacc DAR: %d sites, %d seeds (from %s)\n", x$n_sites, x$n_seeds, x$source))
+  if (!is.null(x$q)) cat(sprintf("Orders (q): %s\n", paste(x$q, collapse = ", ")))
   cat(sprintf("Area method: %s\n", x$area_method))
+  cat("Power law D = c * A^z:\n")
+  for (i in seq_len(nrow(x$power_law))) {
+    cat(sprintf("  %s: z = %.3f\n", x$power_law$metric[i], x$power_law$z[i]))
+  }
   invisible(x)
 }
 
 
 #' @export
-summary.spacc_dar <- function(object, ...) {
-  result <- lapply(seq_along(object$q), function(i) {
-    q_val <- object$q[i]
-    mat <- object$hill$curves[[i]]
-    data.frame(
-      q = q_val,
-      sites = seq_len(object$n_sites),
-      mean_area = colMeans(object$area),
-      mean_diversity = colMeans(mat),
-      lower = apply(mat, 2, stats::quantile, 0.025),
-      upper = apply(mat, 2, stats::quantile, 0.975)
-    )
-  })
-  do.call(rbind, result)
+coef.spacc_dar <- function(object, ...) object$power_law
+
+
+#' @export
+summary.spacc_dar <- function(object, ci_level = 0.95, sd = FALSE, ...) {
+  key <- if (!is.null(object$q)) "q" else "metric"
+  values <- if (!is.null(object$q)) object$q else object$metric
+  summ <- .curve_frame(object$curves, key, values, ci_level, sd = sd)
+  names(summ)[names(summ) == "mean"] <- "mean_diversity"
+  summ$mean_area <- rep(colMeans(object$area), length(object$curves))
+  cols <- c(key, "sites", "mean_area", "mean_diversity", "lower", "upper", if (sd) "sd")
+  summ[, cols]
 }
 
 
 #' @export
 plot.spacc_dar <- function(x, log_scale = FALSE, ci = TRUE, ci_alpha = 0.2, ...) {
-  check_suggests("ggplot2")
-
   summ <- summary(x)
-  summ$q_label <- factor(paste0("q = ", summ$q),
-                          levels = paste0("q = ", sort(unique(summ$q))))
-
-  p <- ggplot2::ggplot(summ, ggplot2::aes(x = mean_area, y = mean_diversity,
-                                            color = q_label))
-
-  if (ci) {
-    p <- p + ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = lower, ymax = upper, fill = q_label),
-      alpha = ci_alpha, color = NA
-    )
+  if (!is.null(x$q)) {
+    summ$label <- .q_label(summ$q)
+    legend <- "Order"
+  } else {
+    summ$label <- factor(summ$metric, levels = x$metric)
+    legend <- "Metric"
   }
+  if (log_scale) summ <- summ[summ$mean_area > 0 & summ$mean_diversity > 0, ]
 
-  p <- p +
-    ggplot2::geom_line(linewidth = 1) +
-    ggplot2::labs(
-      x = "Cumulative area",
-      y = "Diversity (Hill number)",
-      color = "Order",
-      fill = "Order",
-      title = "Diversity-Area Relationship (DAR)"
-    ) +
-    spacc_theme() +
-    ggplot2::theme(legend.position = "bottom")
+  p <- .plot_curves_by(summ, "label", legend,
+                       x = "mean_area", y = "mean_diversity",
+                       xlab = "Cumulative area", ylab = "Diversity",
+                       title = "Diversity-Area Relationship (DAR)",
+                       ci = ci, ci_alpha = ci_alpha)
 
   if (log_scale) {
-    p <- p +
-      ggplot2::scale_x_log10() +
-      ggplot2::scale_y_log10()
+    p <- p + ggplot2::scale_x_log10() + ggplot2::scale_y_log10()
   }
 
   p
@@ -531,6 +556,8 @@ plot.spacc_sfar <- function(x, ...) {
 #'   enabling `plot(type = "map")` and [as_sf()]. Default `FALSE`.
 #' @param progress Logical. Show progress? Default `TRUE`.
 #' @param seed Integer. Random seed.
+#' @param focal_points Optional focal points for `method = "knn"`. See [spacc()].
+#' @param focal_domain Optional polygonal focal domain. See [spacc()].
 #'
 #' @return An object of class `spacc_endemism` containing:
 #'   \item{richness}{Matrix of cumulative richness (n_seeds x n_sites)}
@@ -572,14 +599,17 @@ plot.spacc_sfar <- function(x, ...) {
 spaccEndemism <- function(x,
                            coords,
                            n_seeds = 50L,
-                           method = "knn",
+                           method = c("knn", "nn_walk"),
                            distance = c("euclidean", "haversine"),
                            map = FALSE,
                            parallel = TRUE,
                            n_cores = NULL,
                            progress = TRUE,
-                           seed = NULL) {
+                           seed = NULL,
+                           focal_points = NULL,
+                           focal_domain = NULL) {
 
+  method <- match.arg(method)
   distance <- match.arg(distance)
   if (!is.null(seed)) set.seed(seed)
 
@@ -589,92 +619,52 @@ spaccEndemism <- function(x,
   species_pa <- (x > 0) * 1L
   storage.mode(species_pa) <- "integer"
 
-  # Handle coords
-  if (inherits(coords, "spacc_dist")) {
-    dist_mat <- as.matrix(coords)
-    coord_data <- attr(coords, "coords")
-  } else {
-    stopifnot("coords must have x and y columns" = all(c("x", "y") %in% names(coords)))
-    coord_data <- coords
-    if (progress) cli_info("Computing site distances")
-    dist_mat <- cpp_distance_matrix(coord_data$x, coord_data$y, distance)
-  }
+  site <- .resolve_coords(coords)
+  coord_data <- site$coords
+  stopifnot("x and coords must have same rows" = nrow(x) == nrow(coord_data))
 
   n_sites <- nrow(species_pa)
   n_species <- ncol(species_pa)
+  ordering <- .accumulation_orders(method, coord_data, n_seeds, distance,
+                                   site$dist_mat, focal_points, focal_domain,
+                                   n_cores = n_cores)
+  n_seeds <- ordering$n_seeds
 
-  # Total species occurrences across all sites
+  # A species is endemic to the accumulated area once all of its occurrences
+  # have been visited.
   total_occ <- colSums(species_pa)
+  endemism_along <- function(visit_order) {
+    accumulated <- integer(n_species)
+    out <- matrix(0L, 2L, n_sites)
+    for (k in seq_len(n_sites)) {
+      accumulated <- accumulated + species_pa[visit_order[k], ]
+      out[1L, k] <- sum(accumulated > 0)
+      out[2L, k] <- sum(accumulated > 0 & accumulated == total_occ)
+    }
+    out
+  }
 
   if (progress) cli_info(sprintf("Computing endemism accumulation (%d seeds)", n_seeds))
 
   richness_mat <- matrix(0L, n_seeds, n_sites)
   endemism_mat <- matrix(0L, n_seeds, n_sites)
-
   for (s in seq_len(n_seeds)) {
-    # kNN ordering
-    seed_site <- sample(n_sites, 1) - 1L
-    visited <- logical(n_sites)
-    visit_order <- integer(n_sites)
-    current <- seed_site + 1L
-    visited[current] <- TRUE
-    visit_order[1] <- current
-
-    for (step in 2:n_sites) {
-      dists <- dist_mat[current, ]
-      dists[visited] <- Inf
-      next_site <- which.min(dists)
-      visited[next_site] <- TRUE
-      visit_order[step] <- next_site
-      current <- next_site
-    }
-
-    # Compute cumulative richness and endemism along visit order
-    accumulated <- integer(n_species)  # cumulative occurrences in visited sites
-    for (k in seq_len(n_sites)) {
-      accumulated <- accumulated + species_pa[visit_order[k], ]
-      richness_mat[s, k] <- sum(accumulated > 0)
-
-      # Endemic = present in accumulated but absent from remaining
-      # A species is endemic if accumulated[sp] > 0 AND total_occ[sp] == accumulated[sp]
-      endemic_count <- sum(accumulated > 0 & accumulated == total_occ)
-      endemism_mat[s, k] <- endemic_count
-    }
+    along <- endemism_along(ordering$orders[s, ])
+    richness_mat[s, ] <- along[1L, ]
+    endemism_mat[s, ] <- along[2L, ]
   }
 
-  # Per-site endemism map
   site_values <- NULL
   if (map) {
     if (progress) cli_info("Computing per-site endemism map")
-    # Run accumulation from each site, record final endemism count
-    site_endemism <- numeric(n_sites)
-    for (s in seq_len(n_sites)) {
-      visited <- logical(n_sites)
-      visit_order <- integer(n_sites)
-      current <- s
-      visited[current] <- TRUE
-      visit_order[1] <- current
-
-      for (step in 2:n_sites) {
-        dists <- dist_mat[current, ]
-        dists[visited] <- Inf
-        next_site <- which.min(dists)
-        visited[next_site] <- TRUE
-        visit_order[step] <- next_site
-        current <- next_site
-      }
-
-      # Count endemics at final step (= species only found in the accumulated area)
-      accumulated <- colSums(species_pa[visit_order, , drop = FALSE])
-      site_endemism[s] <- sum(accumulated > 0 & accumulated == total_occ)
-    }
-
-    site_values <- data.frame(
-      x = coord_data$x,
-      y = coord_data$y,
-      endemism = site_endemism,
-      endemism_prop = site_endemism / sum(total_occ > 0)
-    )
+    site_values <- .site_map_values(method, coord_data, distance, site$dist_mat, n_cores,
+      function(orders) {
+        site_endemism <- vapply(seq_len(nrow(orders)), function(s) {
+          endemism_along(orders[s, ])[2L, n_sites]
+        }, numeric(1))
+        list(endemism = site_endemism,
+             endemism_prop = site_endemism / sum(total_occ > 0))
+      })
   }
 
   if (progress) cli_success("Done")
@@ -690,6 +680,7 @@ spaccEndemism <- function(x,
       n_species = ncol(species_pa),
       method = method,
       distance = distance,
+      focal_points = ordering$focal_points,
       call = match.call()
     ),
     class = "spacc_endemism"
@@ -699,26 +690,24 @@ spaccEndemism <- function(x,
 
 #' @export
 print.spacc_endemism <- function(x, ...) {
-  cat(sprintf("spacc endemism: %d sites, %d species, %d seeds\n",
-              x$n_sites, x$n_species, x$n_seeds))
   final_end <- mean(x$endemism[, x$n_sites])
-  cat(sprintf("Final mean endemism: %.1f species (%.0f%% of total)\n",
-              final_end, 100 * final_end / x$n_species))
-  invisible(x)
+  .print_curves(x, "spacc endemism",
+                sprintf("Final mean endemism: %.1f species (%.0f%% of total)",
+                        final_end, 100 * final_end / x$n_species))
 }
 
 
 #' @export
 summary.spacc_endemism <- function(object, ci_level = 0.95, ...) {
-  alpha <- (1 - ci_level) / 2
+  endemism <- .curve_stats(object$endemism, ci_level)
+  mean_richness <- colMeans(object$richness)
   data.frame(
     sites = seq_len(object$n_sites),
-    mean_richness = colMeans(object$richness),
-    mean_endemism = colMeans(object$endemism),
-    endemism_lower = apply(object$endemism, 2, stats::quantile, alpha),
-    endemism_upper = apply(object$endemism, 2, stats::quantile, 1 - alpha),
-    endemism_proportion = colMeans(object$endemism) /
-      pmax(colMeans(object$richness), 1)
+    mean_richness = mean_richness,
+    mean_endemism = endemism$mean,
+    endemism_lower = endemism$lower,
+    endemism_upper = endemism$upper,
+    endemism_proportion = endemism$mean / pmax(mean_richness, 1)
   )
 }
 
@@ -731,12 +720,11 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
   type <- match.arg(type)
 
   if (type == "map") {
-    if (is.null(x$site_values)) stop("No per-site data. Rerun spaccEndemism() with map = TRUE.")
     metric <- match.arg(metric)
-    return(plot_spatial_map(x$site_values, metric,
-                            title = sprintf("Per-site %s", gsub("_", " ", metric)),
-                            subtitle = sprintf("%d sites", x$n_sites),
-                            point_size = point_size, palette = palette))
+    return(.plot_site_map(x, metric,
+                          title = sprintf("Per-site %s", gsub("_", " ", metric)),
+                          subtitle = sprintf("%d sites", x$n_sites),
+                          point_size = point_size, palette = palette))
   }
 
   check_suggests("ggplot2")
@@ -774,7 +762,8 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
     ggplot2::geom_line(linewidth = 1) +
     ggplot2::scale_color_manual(values = c("Total richness" = "#2E7D32",
                                             "Endemic species" = "#C62828")) +
-    ggplot2::scale_fill_manual(values = c("Endemic species" = "#C62828")) +
+    ggplot2::scale_fill_manual(values = c("Endemic species" = "#C62828"),
+                               guide = "none") +
     ggplot2::labs(
       x = "Sites accumulated",
       y = "Species count",
@@ -787,7 +776,4 @@ plot.spacc_endemism <- function(x, type = c("curve", "map"),
 
 
 #' @export
-as_sf.spacc_endemism <- function(x, crs = NULL) {
-  if (is.null(x$site_values)) stop("No per-site data. Rerun spaccEndemism() with map = TRUE.")
-  as_sf_from_df(x$site_values, crs = crs)
-}
+as_sf.spacc_endemism <- function(x, crs = NULL) .as_sf_site_values(x, crs)
